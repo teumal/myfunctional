@@ -271,7 +271,7 @@ const_cast<remove_const_ref_t<decltype(t0)>&>(t0)
 ``` c++
 # define __M_FTOR
 ```
-functor 의 ``const`` qualifier 를 제거한 후, ``soo::bind`` 에서 받았던 타입 그대로 되돌립니다. 만약, functor 가 함수의 레퍼런스였다면, 함수의 포인터로 캐스팅해줍니다.
+``soo::bind`` 에서 사용하는 helper macro 입니다. functor 의 ``const`` qualifier 를 제거한 후, ``soo::bind`` 에서 받았던 타입 그대로 되돌립니다. 만약, functor 가 함수의 레퍼런스였다면, 함수의 포인터로 캐스팅해줍니다.
 ### Parameters
 (none)
 ### Expanded results
@@ -283,6 +283,26 @@ functor 의 ``const`` qualifier 를 제거한 후, ``soo::bind`` 에서 받았�
 
 </td></tr></table>
 
+
+<table><tr><td>
+
+## __INVOKE_MEM_FN
+<sub>Defined in header "myfunctional.hpp"</sub>
+``` c++
+# define __INVOKE_MEM_FN(...)
+```
+``soo::bind`` 에서 사용하는 helper macro 입니다. member function 호출을 위한 this pointer 와 인자들을 올바르게 바인딩 시킨 후, 멤버 함수를 호출합니다.
+
+### Parameters
+<strong>...</strong> - ``bind_arg`` 에서 placeholder 들과 매칭되는 ``<lambda()>::operator()`` 의 인자들.
+### Expanded results
+``` c++
+(bind_this<ThisType>(                                     \
+   bind_arg<Class>(__FORWARD(thisptr), __VA_ARGS__)       \
+ ).*mfp) (bind_arg<Args>(__FORWARD(args), __VA_ARGS__)...)
+```
+
+</td></tr></table>
 
 
 
@@ -342,15 +362,44 @@ constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3,
 <strong>t7</strong> - ``placeholders::_7`` 에 매칭시킬 값의 레퍼런스.
 
 ### Return values
-``__IS_PLACEHOLDER(1)`` 가 ``true`` 라면, __FORWARD(t1). <br>
-``__IS_PLACEHOLDER(2)`` 가 ``true`` 라면, __FORWARD(t2). <br>
-``__IS_PLACEHOLDER(3)`` 가 ``true`` 라면, __FORWARD(t3). <br>
-``__IS_PLACEHOLDER(4)`` 가 ``true`` 라면, __FORWARD(t4). <br>
-``__IS_PLACEHOLDER(5)`` 가 ``true`` 라면, __FORWARD(t5). <br>
-``__IS_PLACEHOLDER(6)`` 가 ``true`` 라면, __FORWARD(t6). <br>
-``__IS_PLACEHOLDER(7)`` 가 ``true`` 라면, __FORWARD(t7). <br>
-그 이외의 경우에는 ``t0`` 의 ``const`` qualifier 를 제거한 후, 원래 타입인 ``Args`` 타입의 레퍼런스 t0.
+``__IS_PLACEHOLDER(1)`` 가 ``true`` 라면, ``__FORWARD(t1)``. <br>
+``__IS_PLACEHOLDER(2)`` 가 ``true`` 라면, ``__FORWARD(t2)``. <br>
+``__IS_PLACEHOLDER(3)`` 가 ``true`` 라면, ``__FORWARD(t3)``. <br>
+``__IS_PLACEHOLDER(4)`` 가 ``true`` 라면, ``__FORWARD(t4)``. <br>
+``__IS_PLACEHOLDER(5)`` 가 ``true`` 라면, ``__FORWARD(t5)``. <br>
+``__IS_PLACEHOLDER(6)`` 가 ``true`` 라면, ``__FORWARD(t6)``. <br>
+``__IS_PLACEHOLDER(7)`` 가 ``true`` 라면, ``__FORWARD(t7)``. <br>
+그 이외의 경우에는 ``(Args&&) (__T0)``
 
 </td></tr></table>
+
+
+<table><tr><td>
+
+## bind_this
+<sub>Defined in header "myfunctional.hpp"</sub>
+``` c++
+template<typename ThisType>
+constexpr decltype(auto) bind_this(auto&& thisptr)
+requires std::is_convertible_v<decltype(thisptr), std::remove_reference_t<ThisType>*>;  (1)
+
+template<typename ThisType>
+constexpr decltype(auto) bind_this(auto&& thisptr)
+requires std::is_convertible_v<decltype(thisptr), ThisType>;  (2)
+```
+``soo::bind`` 에서 사용하는 helper function 입니다. member function 
+
+### Template parameter
+<strong>ThisType</strong> - member function pointer 호출을 위해서 가장 적합한 Class 의 타입.
+
+</td></tr></table>
+
+
+
+
+
+
+
+
 
 
