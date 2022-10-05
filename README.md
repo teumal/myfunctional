@@ -1,10 +1,10 @@
 # myfunctional
 Simple function, bind in c++20
 
-표준 라이브러리에서 지원하는 ``std::function`` 과 ``std::bind`` 를 구현해본 라이브러리입니다. 최대한 ``functional`` 를 쓰지 않으려고 했으며, 그렇기에 ``reference_wrapper`` 등의 클래스도 추가로 구현하였습니다. ``soo::function`` 클래스의 경우, 모든 타입의 function object 들을 담기 위해서 코드에 더러운 ``void*`` 과 ``reinterpret_cast`` 의 사용과 그냥 보면 undefined behavior 로 보이는 placement new 의 사용이 포함되어 있습니다. 이는 처음 만들 때에 직접 구현하는 것만 생각하느라, 표준 라이브러리에 있는 클래스들을 찾아볼 생각은 못했기 때문입니다. ``myfunctional.hpp`` 의 다음 버전에서는 ``std::any`` 를 사용하여 모든 function objects 를 담도록 하였습니다. 물론, 
+표준 라이브러리에서 지원하는 ``std::function`` 과 ``std::bind`` 를 구현해본 라이브러리입니다. 최대한 ``functional`` 를 쓰지 않으려고 했으며, 그렇기에 ``reference_wrapper`` 등의 클래스도 추가로 구현하였습니다. ``soo::function`` 클래스의 경우, 모든 타입의 function object 들을 담기 위해서 코드에 더러운 ``void*`` 과 ``reinterpret_cast`` 의 사용과 그냥 보면 undefined behavior 로 보이는 placement new 의 사용이 포함되어 있습니다. 이는 처음 만들 때에 직접 구현하는 것만 생각하느라, 표준 라이브러리에 있는 클래스들을 찾아볼 생각은 못했기 때문입니다. ``myfunctional.hpp`` 의 다음 버전에서는 ``std::any`` 를 사용하여 모든 function objects 를 담도록 하였습니다. 물론, 해당 방법이 궁금한 이들을
 
 구현방식에 대한 설명은 [std::function, std::bind 를 만들어보자
- ](https://blog.naver.com/zmsdkemf8703) 강좌에서 볼 수 있으며, 여기서는 구현하는데 사용했던 함수 및 클래스, 매크로의 레퍼런스를 적어놓았습니다. 
+ ](https://blog.naver.com/zmsdkemf8703) 강좌에서 볼 수 있으며, 여기서는 구현하는데 사용했던 함수 및 클래스, 매크로의 레퍼런스를 적어놓았습니다.
 
 <table><tr><td>
 
