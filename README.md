@@ -1,7 +1,7 @@
 # myfunctional
 My implementation of std::function, std::bind in c++20
 
-표준 라이브러리에서 지원하는 ``std::function`` 과 ``std::bind`` 를 구현해봤습니다. 
+표준 라이브러리에서 지원하는 ``std::function`` 과 ``std::bind`` 를 구현해본 라이브러리입니다. 최대한 ``functional`` 를 쓰지 않으려고 했으며, 그렇기에 ``reference_wrapper`` 등의 클래스도 추가로 구현하였습니다. 
 
 <table><tr><td>
 
@@ -114,7 +114,7 @@ int main() {
 
 <table><tr><td>
 
-## remove_const_ref
+## soo::remove_const_ref
 <sub>Defined in header "mytype_traits.hpp"</sub>
 ``` c++
 template<typename T>
@@ -143,7 +143,7 @@ int main() {
 
 <table><tr><td>
 
-## this_type
+## soo::this_type
 <sub>Defined in header "mytype_traits.hpp"</sub>
 ``` c++
 template<typename T>
@@ -179,7 +179,7 @@ int main() {
 
 <table><tr><td>
 
-## is_function_reference
+## soo::is_function_reference
 <sub>Defined in header "mytype_traits.hpp"</sub>
 ```c++
 template<typename T>
@@ -308,7 +308,7 @@ const_cast<remove_const_ref_t<decltype(t0)>&>(t0)
 
 <table><tr><td>
 
-## bind_arg
+## soo::bind_arg
 <sub>Defined in header "myfunctional.hpp"</sub>
 ``` c++
 template<typename Args>
@@ -339,14 +339,14 @@ constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3,
                                   auto&& t4, auto&& t5, auto&& t6, auto&& t7);  (8)
 ```
 ``soo::bind`` 의 구현에 사용되는 핵심 함수입니다. ``t0`` 을 올바른 인자로 바인딩합니다. <br>
- 1) ``t0`` 을 현재 그대로 바인딩합니다.<br>
- 2) ``t0`` 을 [t0,t1] 중 하나로 바인딩합니다.  <br>
- 3) ``t0`` 을 [t0,t2] 중 하나로 바인딩합니다. <br>
- 4) ``t0`` 을 [t0,t3] 중 하나로 바인딩합니다. <br>
- 5) ``t0`` 을 [t0,t4] 중 하나로 바인딩합니다. <br>
- 6) ``t0`` 을 [t0,t5] 중 하나로 바인딩합니다. <br>
- 7) ``t0`` 을 [t0,t6] 중 하나로 바인딩합니다. <br>
- 8) ``t0`` 을 [t0,t7] 중 하나로 바인딩합니다. 
+1) ``t0`` 을 현재 그대로 바인딩합니다.<br>
+2) ``t0`` 을 [t0,t1] 중 하나로 바인딩합니다.  <br>
+3) ``t0`` 을 [t0,t2] 중 하나로 바인딩합니다. <br>
+4) ``t0`` 을 [t0,t3] 중 하나로 바인딩합니다. <br>
+5) ``t0`` 을 [t0,t4] 중 하나로 바인딩합니다. <br>
+6) ``t0`` 을 [t0,t5] 중 하나로 바인딩합니다. <br>
+7) ``t0`` 을 [t0,t6] 중 하나로 바인딩합니다. <br>
+8) ``t0`` 을 [t0,t7] 중 하나로 바인딩합니다. 
   
 ### Template parameter
 <strong>Args</strong> - ``soo::bind`` 에서 받았던 ``t0`` 의 원래 타입 Args.
@@ -376,7 +376,7 @@ constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3,
 
 <table><tr><td>
 
-## bind_this
+## soo::bind_this
 <sub>Defined in header "myfunctional.hpp"</sub>
 ``` c++
 template<typename ThisType>
@@ -387,14 +387,54 @@ template<typename ThisType>
 constexpr decltype(auto) bind_this(auto&& thisptr)
 requires std::is_convertible_v<decltype(thisptr), ThisType>;  (2)
 ```
-``soo::bind`` 에서 사용하는 helper function 입니다. member function 
+``soo::bind`` 에서 사용하는 helper function 입니다. member function 를 호출하기 위해 ``soo::bind`` 로 전달된, this pointer 를 올바른 형식으로 바인딩합니다.<br>
+1) 전달된 thisptr 객체가 ``Class*`` 로 변환될 수 있으며, 포인터 접근을 하여 ``Class&`` 의 형태로 만들어서 돌려줍니다. <br>
+2) 전달된 thisptr 객체가 ``Class&`` 또는 ``Class&&`` 로 변환될 수 있으며, 가장 적합한 타입으로 만들어서 돌려줍니다. <br>
 
 ### Template parameter
 <strong>ThisType</strong> - member function pointer 호출을 위해서 가장 적합한 Class 의 타입.
 
+### Parameter
+<strong>thisptr</strong> - member function poineter 호출에 사용될, this 의 pointer 나 reference 로 변환될 수 있는 객체의 레퍼런스.
+
+### Return values
+1) member function pointer 호출에 사용될, this 객체의 lvalue reference. <br>
+2) member function pointer 호출에 사용될, this 객체의 rvalue reference 또는 lvalue-reference.
+
 </td></tr></table>
 
+<table><tr><td>
 
+## soo::bind
+<sub>Defined in header "myfunctional.hpp"</sub>
+``` c++
+template<typename Functor, typename...Args>
+constexpr auto bind(Functor&& ftor, Args&&...args)
+requires !std::is_member_function_pointer_v<std::remove_reference<Functor>>;   (1)
+
+template<typename Functor, typename Class, typename...Args>
+auto bind(Functor&& mfp, Class&& thisptr, Args&&...args)
+requires std::is_member_function_pointer_v<std::remove_reference<Functor>>;  (2)
+```
+function object 와 함수 호출에 필요한 인자들을 묶습니다. (2) 버전의 ``mfp`` 를 제외한 나머지 인자들은 ``soo::ref`` 또는 ``soo::cref`` 로 감싸는 것으로, 불필요한 복사를 피할 수 있습니다. ``Functor`` 에 해당하는 객체를 제외하고는, 나머지 인자들은 항상 copy constructor 를 호출하여 복사가 됩니다. 다만, ``operator()`` 호출 시에는 ``soo::bind``에 전달했던 타입 그대로 전달합니다. 반환값은 generic lambda 이며, ``<lambda()>::operator()`` 의 호출 인자는 ``soo::bind`` 의 인자로 넘긴 Placeholder 의 번호의 최댓값이 됩니다. 만약, ``placeholders::_7`` 을 넘겼다면 ``<lambda()>::operator()`` 의 호출 인자는 7개가 된다는 의미입니다. 
+
+1) static function 과 ``operator()`` 를 가진 functor 를 받는 버전. <br>
+2) member function pointer 와 this pointer 를 받는 버전.
+
+### Parameters
+<strong>ftor</strong> - 바인딩할 ``operator()`` 를 가진 객체 또는 static function 의 레퍼런스. <br>
+<strong>args...</strong> - ``Placeholder<1> ~ Placeholder<7>`` 를 포함한 전달한 function object 의 인자로 쓰일 객체의 레퍼런스. <br>
+<strong>mfp</strong> - 바인딩할 member function pointer. <br>
+<strong>thisptr</strong> - 바인딩할 member function 에서 this pointer 로써 사용할 객체의 레퍼런스.  <br>
+
+### Return value
+``soo::bind`` 로 전달한  바인딩할 function objects 와 인자들을 모두 복사한 ``generic lambda``. 만약, Placeholder 객체를 저장했다면, 크기가 1인 객체로 취급하여 저장합니다. 
+### Example
+``` c++
+
+```
+
+</td></tr></table>
 
 
 
