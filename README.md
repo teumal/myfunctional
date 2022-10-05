@@ -431,6 +431,107 @@ function object 와 함수 호출에 필요한 인자들을 묶습니다. (2) �
 ``soo::bind`` 로 전달한  바인딩할 function objects 와 인자들을 모두 복사한 ``generic lambda``. 만약, Placeholder 객체를 저장했다면, 크기가 1인 객체로 취급하여 저장합니다. 
 ### Example
 ``` c++
+// Example 1
+# include"myfunctional.hpp"
+using namespace soo::placeholders;
+
+struct A {
+  void operator()(int&) & {std::cout << __PRETTY_FUNCTION__ << std::endl; }  
+  void operator()(int&) &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(int&) const &{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(int&) const &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(int&) const volatile &{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(int&) const volatile &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  
+  void operator()(int&&) & {std::cout << __PRETTY_FUNCTION__ << std::endl; }  
+  void operator()(int&&) &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(int&&) const &{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(int&&) const &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(int&&) const volatile &{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(int&&) const volatile &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  
+  void operator()(const int&) & {std::cout << __PRETTY_FUNCTION__ << std::endl; }  
+  void operator()(const int&) &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(const int&) const &{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(const int&) const &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(const int&) const volatile &{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(const int&) const volatile &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  
+  void operator()(const int&&) & {std::cout << __PRETTY_FUNCTION__ << std::endl; }  
+  void operator()(const int&&) &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(const int&&) const &{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(const int&&) const &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(const int&&) const volatile &{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(const int&&) const volatile &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+
+  void operator()(const volatile int&) & {std::cout << __PRETTY_FUNCTION__ << std::endl; }  
+  void operator()(const volatile int&) &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(const volatile int&) const &{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(const volatile int&) const &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(const volatile int&) const volatile &{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(const volatile int&) const volatile &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  
+  void operator()(const volatile int&&) & {std::cout << __PRETTY_FUNCTION__ << std::endl; }  
+  void operator()(const volatile int&&) &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(const volatile int&&) const &{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(const volatile int&&) const &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(const volatile int&&) const volatile &{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+  void operator()(const volatile int&&) const volatile &&{std::cout << __PRETTY_FUNCTION__ << std::endl; }
+};
+
+struct Adder {
+    int a, b;
+    int operator()() && {
+        return a + b;
+    }
+    int add() & {
+        return a + b;
+    }
+};
+
+
+int main()
+{
+    int a = 10;
+    const int b = 20;
+    const volatile int c = 30;
+ 
+    A a1;
+    const A a2;
+    const volatile A a3;
+    
+    Adder adder{1,2};
+    
+    auto fn1 = soo::bind(A{}, _1);
+    fn1(a); // void A::operator()(int&) &&
+
+    auto fn2 = soo::bind(soo::ref(a3), _4);
+    fn2(1,2,3,*new int); // void A::operator() (int&) const volatile &
+    
+    auto fn3 = soo::bind(printf,_7,_3,_1);
+    fn3(1,2,3,4,5,6,"%d%d\n"); // 31
+    
+    auto fn4 = soo::bind(strlen, "abcdefghijklmnopqrstuvwxyz0123456789");
+    std::cout << sizeof(fn4) << ' ' << fn4() << '\n'; // 48 36
+    
+    auto fn5 = soo::bind(strlen, soo::cref("abcdefghijklmnopqrstuvwxyz0123456789") );
+    std::cout << sizeof(fn5) << ' ' << fn5() << '\n';  // 16 36
+    
+    auto fn6 = soo::bind(fn3, 1.0f, 2.0f, 3.0f, 4,5,6, "%.1f %.1f\n");
+    fn6(); // 3.0 1.0
+    
+    auto fn7 = soo::bind(Adder{1,2} );
+    std::cout << fn7() << '\n'; // 3
+    
+    auto fn8 = soo::bind(&Adder::operator(), std::move(adder) );
+    std::cout << fn8() << '\n'; // 9
+    
+    auto fn9 = soo::bind(&Adder::add, soo::ref(adder) );
+    adder.a = 10;
+    adder.b = 20;
+    std::cout << fn9(); // 30
+}
+
 
 ```
 
