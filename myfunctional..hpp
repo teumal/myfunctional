@@ -480,7 +480,7 @@
        template<typename Args>
        constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3, 
                                          auto&& t4, auto&& t5, auto&& t6, auto&& t7) {
-           if constexpr (__IS_PLACEHOLDER(1) ) __FORWARD(t1);
+           if constexpr (__IS_PLACEHOLDER(1) ) return __FORWARD(t1);
            else if constexpr (__IS_PLACEHOLDER(2) ) return __FORWARD(t2);
            else if constexpr (__IS_PLACEHOLDER(3) ) return __FORWARD(t3);
            else if constexpr (__IS_PLACEHOLDER(4) ) return __FORWARD(t4);
