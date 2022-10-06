@@ -106,8 +106,8 @@
        /** specialization for non-variadic function */
        template<typename Ret, typename...Args>
        class alignas(16) function<Ret(Args...)> {
-           enum Operation {
-             TARGET, TARGET_TYPE, CONSTRUCT, DESTRUCT
+           enum struct Operation {
+             TARGET, TARGET_TYPE, CONSTRUCT, DESTRUCT,
            };
            using InvokeType       = Ret(*)(function&, Args&&...);
            using ClosureOperation = void(*)(const function&, void*, Operation);
@@ -167,11 +167,11 @@
            static void operate(const function& fn, void* out, Operation op)
            requires (FunctorSize<=16) {
                switch(op) {
-                case TARGET:      *reinterpret_cast<const char**>(out) = fn.m_closure_local; break;
-                case TARGET_TYPE: *reinterpret_cast<const std::type_info**>(out) = &typeid(Functor); break;
-                case CONSTRUCT:   new(reinterpret_cast<function*>(out)->m_closure_local )
-                                  Functor(*reinterpret_cast<const Functor*>(fn.m_closure_local) ); break;
-                case DESTRUCT:    reinterpret_cast<const Functor*>(fn.m_closure_local)->~Functor(); break;
+                case Operation::TARGET:      *reinterpret_cast<const char**>(out) = fn.m_closure_local; break;
+                case Operation::TARGET_TYPE: *reinterpret_cast<const std::type_info**>(out) = &typeid(Functor); break;
+                case Operation::CONSTRUCT:   new(reinterpret_cast<function*>(out)->m_closure_local )
+                                             Functor(*reinterpret_cast<const Functor*>(fn.m_closure_local) ); break;
+                case Operation::DESTRUCT:    reinterpret_cast<const Functor*>(fn.m_closure_local)->~Functor(); break;
                };
            }
            
@@ -180,12 +180,20 @@
            template<size_t FunctorSize, typename Functor>
            static void operate(const function& fn, void* out, Operation op)
            requires (FunctorSize>16) {
+               function& fn2 = *reinterpret_cast<function*>(out);
+               
                switch(op) {
-                case TARGET:      *reinterpret_cast<const char**>(out) = fn.m_closure_global; break;
-                case TARGET_TYPE: *reinterpret_cast<const std::type_info**>(out) = &typeid(Functor); break;
-                case CONSTRUCT:   new(reinterpret_cast<function*>(out)->m_closure_global) 
-                                  Functor(*reinterpret_cast<const Functor*>(fn.m_closure_global) ); break;
-                case DESTRUCT:    reinterpret_cast<const Functor*>(fn.m_closure_global)->~Functor(); break;
+                case Operation::TARGET:      *reinterpret_cast<const char**>(out) = fn.m_closure_global; break;
+                case Operation::TARGET_TYPE: *reinterpret_cast<const std::type_info**>(out) = &typeid(Functor); break;
+                case Operation::CONSTRUCT:   if(fn2.m_closure_maxsz < FunctorSize) {
+                                               if(fn2.m_closure_global) delete fn2.m_closure_global;
+                                               fn2.m_closure_maxsz  = FunctorSize + 63 & -64;
+                                               fn2.m_closure_global = (new aligned_storage<FunctorSize+63&-64,
+                                                                                           FunctorSize+63&-64>)->buf;
+                                             }
+                                             new(fn2.m_closure_global) 
+                                             Functor(*reinterpret_cast<const Functor*>(fn.m_closure_global) ); break;
+                case Operation::DESTRUCT:    reinterpret_cast<const Functor*>(fn.m_closure_global)->~Functor(); break;
                };
            }
            
@@ -212,7 +220,7 @@
            
            /** destructor */
            ~function() noexcept {
-               if(m_operate) m_operate(*this, nullptr, DESTRUCT);
+               if(m_operate) m_operate(*this, nullptr, Operation::DESTRUCT);
                if(m_closure_global) delete[] m_closure_global;
            }
            
@@ -252,7 +260,7 @@
                                     std::remove_cvref_t<function> > {
               using RawFunctor = decay_function_t<std::remove_reference_t<Functor>>; // int() => int(*)()
               if(m_operate) {
-                m_operate(*this, nullptr, DESTRUCT); // call the current closure's destructor.
+                m_operate(*this, nullptr, Operation::DESTRUCT); // call the current closure's destructor.
               }
               m_operate = function::operate<sizeof(RawFunctor), RawFunctor>; 
               
@@ -268,7 +276,7 @@
               }
               else {
                 if(m_closure_maxsz < sizeof(RawFunctor) ) {
-                    if(m_closure_global) delete[] m_closure_global;
+                    if(m_closure_global) delete m_closure_global;
                     m_closure_maxsz  = sizeof(RawFunctor) + 63 & -64; // always allocate power of 64.
                     m_closure_global = (new aligned_storage<sizeof(RawFunctor)+63&-64, 
                                                             sizeof(RawFunctor)+63&-64>)->buf; 
@@ -282,15 +290,11 @@
            /** assign a copy of target of other */
            function& operator=(const function& other) {
                if(m_operate) {
-                  m_operate(*this, nullptr,DESTRUCT);
+                  m_operate(*this, nullptr, Operation::DESTRUCT);
                }
-           	   m_closure_maxsz = other.m_closure_maxsz;
+               other.m_operate(other, this, Operation::CONSTRUCT);
                m_invoke        = other.m_invoke;
                m_operate       = other.m_operate;
-               if(other.m_closure_global) {
-           	      m_closure_global = new char[other.m_closure_maxsz];
-               }
-               other.m_operate(other, this, CONSTRUCT);
                return *this;
            }
            
@@ -303,7 +307,7 @@
            
            /** drop the current target  */
            function& operator=(std::nullptr_t) {
-               if(m_operate) m_operate(*this, nullptr, DESTRUCT);
+               if(m_operate) m_operate(*this, nullptr, Operation::DESTRUCT);
                m_invoke  = nullptr;
                m_operate = nullptr;
                return *this;
@@ -330,7 +334,7 @@
            const std::type_info& target_type() const {
                if(m_operate) {
                    const std::type_info* ret;
-                   m_operate(*this, &ret, TARGET_TYPE);
+                   m_operate(*this, &ret, Operation::TARGET_TYPE);
                    return *ret;
                }
                else {
@@ -343,7 +347,7 @@
            constexpr auto target() const -> decay_function_t<T>* {
                char* ret = nullptr;
                if(m_operate) {
-                   m_operate(*this, &ret, TARGET);
+                   m_operate(*this, &ret, Operation::TARGET);
                }
                return reinterpret_cast<decay_function_t<T>*>(ret);
            }
