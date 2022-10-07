@@ -1,10 +1,8 @@
 # myfunctional
 Simple function, bind in c++20
 
-표준 라이브러리에서 지원하는 ``std::function`` 과 ``std::bind`` 를 구현해본 라이브러리입니다. 최대한 ``functional`` 를 쓰지 않으려고 했으며, 그렇기에 ``reference_wrapper`` 등의 클래스도 추가로 구현하였습니다. ``soo::function`` 클래스의 경우, 모든 타입의 function object 들을 담기 위해서 코드에 더러운 ``void*`` 과 ``reinterpret_cast`` 의 사용과 그냥 보면 undefined behavior 로 보이는 placement new 의 사용이 포함되어 있습니다. 이는 처음 만들 때에 직접 구현하는 것만 생각하느라, 표준 라이브러리에 있는 클래스들을 찾아볼 생각은 못했기 때문입니다. ``myfunctional.hpp`` 의 다음 버전에서는 ``std::any`` 를 사용하여 모든 function objects 를 담도록 하였습니다. 물론, 해당 방법이 궁금한 이들을
-
-구현방식에 대한 설명은 [std::function, std::bind 를 만들어보자
- ](https://blog.naver.com/zmsdkemf8703) 강좌에서 볼 수 있으며, 여기서는 구현하는데 사용했던 함수 및 클래스, 매크로의 레퍼런스를 적어놓았습니다.
+표준 라이브러리에서 지원하는 ``std::function`` 과 ``std::bind`` 를 구현해본 라이브러리입니다. 최대한 표준 라이브러리의 구현을 사용하지 않고, 직접 만들어보았습니다. 그렇기에 ``soo::ref`` 등의 표준 라이브러리의 ``functional`` 에서 지원하는 함수들도 직접 구현하였습니다. ``soo::function`` 의 경우, 모든 function object 를 저장하기 위해서 ``char*`` 와 ``reinterpret_cast``, ``placement new`` 를 사용하여 직접 constructor 와 destructor 를 호출합니다. ``soo::bind`` 의 경우, bind 의 구현 대부분이 ``std::tuple`` 을 사용하여 구현된 듯 하여, 여기서는 c++11 부터 지원하는 Lambda expression 들을 시용하여 구현하기로 하였습니다. 이 문서에서는 ``myfunctional.hpp`` 과 ``mytype_traits.hpp`` 에서 정의된 함수 및 클래스와 매크로의 간단한 레퍼런스를 다룰 것입니다. 
+class template 은 보통 헤더파일에 정의와 선언을 모두 담는게 일반적이므로, cpp 파일은 따로 존재하지 않습니다. 추가로 ''soo::function'' 의 모든 멤버함수들은 class body 안에서 정의를 해놨습니다. 강제 인라인화가 되는게 흠이지만, 단순히 구현을 보여주는 것이 목적이므로 그냥 넘어가기로 하였습니다. 물론 이것이 더 깔끔해보이기도 한 것도 있습니다(class body 밖에다가 멤버 함수를 정의하여고 하니, template parameter list 범벅이 되버려서;;). 
 
 <table><tr><td>
 
