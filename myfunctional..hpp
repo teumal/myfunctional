@@ -509,7 +509,7 @@
        template<typename ThisType>
        constexpr decltype(auto) bind_this(auto&& thisptr) 
        requires std::is_convertible_v<decltype(thisptr), ThisType> {
-           return (ThisType) thisptr;
+           return (ThisType&&) thisptr;
        }
        
        
