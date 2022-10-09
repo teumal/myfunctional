@@ -401,89 +401,113 @@
        
        /******************
         * __IS_PLACEHOLDER
+        * __IS_ARRAY_FUNCTION_TYPE
         * __FORWARD
-        * __T0
         * __M_FTOR
         * __INVOKE_MEM_FN
         *****************/
 
-       # define __IS_PLACEHOLDER(N) std::is_same_v<const placeholders::Placeholder<N>,    \
-                                                   std::remove_reference_t<decltype(t0)> >   
+       # define __IS_PLACEHOLDER(N) std::is_same_v<placeholders::Placeholder<N>,    \
+                                                   std::remove_cvref_t<decltype(t0)> >  
+       # define __IS_ARRAY_FUNCTION_TYPE is_function_reference_v<Args> || \
+                                         is_array_reference_v<Args>
        # define __FORWARD(tn) (decltype(tn)) tn
-       # define __T0           const_cast<remove_const_ref_t<decltype(t0)>&>(t0)
        # define __M_FTOR      ((std::conditional_t<is_function_reference_v<Functor&&>, \
                                                    RawFunctor,                         \
-                                                   Functor&&>) *const_cast<RawFunctor*>(&m_ftor))
-       # define __INVOKE_MEM_FN(...) (bind_this<ThisType>(                                     \
-                                        bind_arg<Class>(__FORWARD(thisptr), __VA_ARGS__)       \
+                                                   Functor&&>) m_ftor)
+       # define __INVOKE_MEM_FN(...) (bind_this<ThisType>(                                \
+                                        bind_arg<Class>(__FORWARD(thisptr), __VA_ARGS__)  \
                                       ).*mfp) (bind_arg<Args>(__FORWARD(args), __VA_ARGS__)...)
                             
                                       
        /*******************
         * bind_arg
         *******************/
-        
-       template<typename Args>
+       
+       template<typename Args> 
        constexpr decltype(auto) bind_arg(auto&& t0) {
-           return (Args&&)(__T0);
+           using RawArgs = std::remove_reference_t<Args>;
+
+           if constexpr (__IS_ARRAY_FUNCTION_TYPE) return (Args&&) (*(RawArgs*) t0);
+           else return (Args&&) t0;
        }
        
        template<typename Args>
        constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1) {
+           using RawArgs = std::remove_reference_t<Args>;
+
            if constexpr (__IS_PLACEHOLDER(1) ) return __FORWARD(t1);
-           else return (Args&&)(__T0);
+           else if constexpr (__IS_ARRAY_FUNCTION_TYPE) return (Args&&) (*(RawArgs*) t0);
+           else return (Args&&) t0;
        }
        
        template<typename Args>
        constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2) {
+           using RawArgs = std::remove_reference_t<Args>;
+           
            if constexpr (__IS_PLACEHOLDER(1) ) return __FORWARD(t1);
            else if constexpr (__IS_PLACEHOLDER(2) ) return __FORWARD(t2);
-           else return (Args&&)(__T0);
+           else if constexpr (__IS_ARRAY_FUNCTION_TYPE) return (Args&&) (*(RawArgs*) t0);
+           else return (Args&&) t0;
        }
        
        template<typename Args>
        constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3) {
+           using RawArgs = std::remove_reference_t<Args>;
+           
            if constexpr (__IS_PLACEHOLDER(1) ) return __FORWARD(t1);
            else if constexpr (__IS_PLACEHOLDER(2) ) return __FORWARD(t2);
            else if constexpr (__IS_PLACEHOLDER(3) ) return __FORWARD(t3);
-           else return (Args&&)(__T0);
+           else if constexpr (__IS_ARRAY_FUNCTION_TYPE) return (Args&&) (*(RawArgs*) t0);
+           else return (Args&&) t0;
        }
        
        template<typename Args>
        constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3, auto&& t4) {
+           using RawArgs = std::remove_reference_t<Args>;
+           
            if constexpr (__IS_PLACEHOLDER(1) ) return __FORWARD(t1);
            else if constexpr (__IS_PLACEHOLDER(2) ) return __FORWARD(t2);
            else if constexpr (__IS_PLACEHOLDER(3) ) return __FORWARD(t3);
            else if constexpr (__IS_PLACEHOLDER(4) ) return __FORWARD(t4);
-           else return (Args&&)(__T0);
+           else if constexpr (__IS_ARRAY_FUNCTION_TYPE) return (Args&&) (*(RawArgs*) t0);
+           else return (Args&&) t0;
        }
        
        template<typename Args>
        constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3, 
                                          auto&& t4, auto&& t5) {
+           using RawArgs = std::remove_reference_t<Args>;
+           
            if constexpr (__IS_PLACEHOLDER(1) ) return __FORWARD(t1);
            else if constexpr (__IS_PLACEHOLDER(2) ) return __FORWARD(t2);
            else if constexpr (__IS_PLACEHOLDER(3) ) return __FORWARD(t3);
            else if constexpr (__IS_PLACEHOLDER(4) ) return __FORWARD(t4);
            else if constexpr (__IS_PLACEHOLDER(5) ) return __FORWARD(t5);
-           else return (Args&&)(__T0);
+           else if constexpr (__IS_ARRAY_FUNCTION_TYPE) return (Args&&) (*(RawArgs*) t0);
+           else return (Args&&) t0;
        }
        
        template<typename Args>
        constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3, 
                                          auto&& t4, auto&& t5, auto&& t6) {
+           using RawArgs = std::remove_reference_t<Args>;
+           
            if constexpr (__IS_PLACEHOLDER(1) ) return __FORWARD(t1);
            else if constexpr (__IS_PLACEHOLDER(2) ) return __FORWARD(t2);
            else if constexpr (__IS_PLACEHOLDER(3) ) return __FORWARD(t3);
            else if constexpr (__IS_PLACEHOLDER(4) ) return __FORWARD(t4);
            else if constexpr (__IS_PLACEHOLDER(5) ) return __FORWARD(t5);
            else if constexpr (__IS_PLACEHOLDER(6) ) return __FORWARD(t6);
-           else return (Args&&)(__T0);
+           else if constexpr (__IS_ARRAY_FUNCTION_TYPE) return (Args&&) (*(RawArgs*) t0);
+           else return (Args&&) t0;
        }
        
        template<typename Args>
        constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3, 
                                          auto&& t4, auto&& t5, auto&& t6, auto&& t7) {
+           using RawArgs = std::remove_reference_t<Args>;
+           
            if constexpr (__IS_PLACEHOLDER(1) ) return __FORWARD(t1);
            else if constexpr (__IS_PLACEHOLDER(2) ) return __FORWARD(t2);
            else if constexpr (__IS_PLACEHOLDER(3) ) return __FORWARD(t3);
@@ -491,7 +515,8 @@
            else if constexpr (__IS_PLACEHOLDER(5) ) return __FORWARD(t5);
            else if constexpr (__IS_PLACEHOLDER(6) ) return __FORWARD(t6);
            else if constexpr (__IS_PLACEHOLDER(7) ) return __FORWARD(t7);
-           else return (Args&&)(__T0);
+           else if constexpr (__IS_ARRAY_FUNCTION_TYPE) return (Args&&) (*(RawArgs*) t0);
+           else return (Args&&) t0;
        }
        
        
@@ -525,8 +550,8 @@
 
          /** using placeholders [_1, _7] */
          if constexpr (find_type_v<decltype(placeholders::_7), std::remove_reference_t<Args>...>) {
-            return [m_ftor=std::forward<Functor>(ftor), args...] 
-                   (auto&& arg1, auto&& arg2, auto&& arg3, auto&& arg4, auto&& arg5, auto&& arg6, auto&& arg7) {
+            return [m_ftor=__FORWARD(ftor), ...args=__FORWARD(args)] 
+                   (auto&& arg1, auto&& arg2, auto&& arg3, auto&& arg4, auto&& arg5, auto&& arg6, auto&& arg7) mutable {
                      return __M_FTOR(bind_arg<Args>(__FORWARD(args),__FORWARD(arg1),__FORWARD(arg2),
                                                     __FORWARD(arg3),__FORWARD(arg4),__FORWARD(arg5),
                                                     __FORWARD(arg6),__FORWARD(arg7) )...);
@@ -534,8 +559,8 @@
          }
          /** using placeholders [_1, _6] */
          else if constexpr (find_type_v<decltype(placeholders::_6), std::remove_reference_t<Args>...>) {
-            return [m_ftor=std::forward<Functor>(ftor), args...] 
-                   (auto&& arg1, auto&& arg2, auto&& arg3, auto&& arg4, auto&& arg5, auto&& arg6) {
+            return [m_ftor=__FORWARD(ftor), ...args=__FORWARD(args)]  
+                   (auto&& arg1, auto&& arg2, auto&& arg3, auto&& arg4, auto&& arg5, auto&& arg6) mutable {
                      return __M_FTOR(bind_arg<Args>(__FORWARD(args),__FORWARD(arg1),__FORWARD(arg2),
                                                     __FORWARD(arg3),__FORWARD(arg4),__FORWARD(arg5),
                                                     __FORWARD(arg6) )...);
@@ -543,41 +568,45 @@
          }
          /** using placeholders [_1, _5] */
          else if constexpr (find_type_v<decltype(placeholders::_5), std::remove_reference_t<Args>...>) {
-            return [m_ftor=std::forward<Functor>(ftor), args...] 
-                   (auto&& arg1, auto&& arg2, auto&& arg3, auto&& arg4, auto&& arg5) {
+            return [m_ftor=__FORWARD(ftor), ...args=__FORWARD(args)]  
+                   (auto&& arg1, auto&& arg2, auto&& arg3, auto&& arg4, auto&& arg5) mutable {
                      return __M_FTOR(bind_arg<Args>(__FORWARD(args),__FORWARD(arg1),__FORWARD(arg2),
                                                     __FORWARD(arg3),__FORWARD(arg4),__FORWARD(arg5) )...);
                    };  
          }
          /** using placeholders [_1, _4] */
          else if constexpr (find_type_v<decltype(placeholders::_4), std::remove_reference_t<Args>...>) {
-            return [m_ftor=std::forward<Functor>(ftor), args...] (auto&& arg1, auto&& arg2, auto&& arg3, auto&& arg4) {
+            return [m_ftor=__FORWARD(ftor), ...args=__FORWARD(args)] 
+                   (auto&& arg1, auto&& arg2, auto&& arg3, auto&& arg4) mutable {
                      return __M_FTOR(bind_arg<Args>(__FORWARD(args),__FORWARD(arg1),__FORWARD(arg2),
                                                     __FORWARD(arg3),__FORWARD(arg4) )...);
                    }; 
          }
          /** using placeholders [_1, _3] */
          else if constexpr (find_type_v<decltype(placeholders::_3), std::remove_reference_t<Args>...>) {
-            return [m_ftor=std::forward<Functor>(ftor), args...] (auto&& arg1, auto&& arg2, auto&& arg3) {
+            return [m_ftor=__FORWARD(ftor), ...args=__FORWARD(args)] 
+                   (auto&& arg1, auto&& arg2, auto&& arg3) mutable {
                      return __M_FTOR(bind_arg<Args>(__FORWARD(args),__FORWARD(arg1),__FORWARD(arg2),
                                                     __FORWARD(arg3) )...);
                    };  
          }
          /** using placeholders [_1, _2] */
          else if constexpr (find_type_v<decltype(placeholders::_2), std::remove_reference_t<Args>...>) {
-            return [m_ftor=std::forward<Functor>(ftor), args...] (auto&& arg1, auto&& arg2) {
+            return [m_ftor=__FORWARD(ftor), ...args=__FORWARD(args)] 
+                   (auto&& arg1, auto&& arg2) mutable {
                      return __M_FTOR(bind_arg<Args>(__FORWARD(args),__FORWARD(arg1),__FORWARD(arg2) )...);
                    }; 
          }
          /** using placeholders [_1] */
          else if constexpr (find_type_v<decltype(placeholders::_1), std::remove_reference_t<Args>...>) {
-            return [m_ftor=std::forward<Functor>(ftor), args...] (auto&& arg1) {
+            return [m_ftor=__FORWARD(ftor), ...args=__FORWARD(args)] 
+                   (auto&& arg1) mutable {
                     return __M_FTOR(bind_arg<Args>(__FORWARD(args),__FORWARD(arg1) )...);
                    };
          }
          /** not using placeholders */
          else {
-           return [m_ftor=std::forward<Functor>(ftor), args...] {
+           return [m_ftor=__FORWARD(ftor), ...args=__FORWARD(args)] () mutable {
                     return __M_FTOR(bind_arg<Args>(__FORWARD(args) )...);
                   };
          }
@@ -592,8 +621,8 @@
            
          /** using placeholders [_1, _7] */
          if constexpr (find_type_v<decltype(placeholders::_7), std::remove_reference_t<Class>, std::remove_reference_t<Args>...>) {
-            return [mfp, thisptr, args...]
-                   (auto&& arg1, auto&& arg2, auto&& arg3, auto&& arg4, auto&& arg5, auto&& arg6, auto&& arg7) {
+            return [mfp, thisptr=__FORWARD(thisptr), ...args=__FORWARD(args)]
+                   (auto&& arg1, auto&& arg2, auto&& arg3, auto&& arg4, auto&& arg5, auto&& arg6, auto&& arg7) mutable {
                      return __INVOKE_MEM_FN(__FORWARD(arg1),__FORWARD(arg2),__FORWARD(arg3),
                                             __FORWARD(arg4),__FORWARD(arg5),__FORWARD(arg6),
                                             __FORWARD(arg7) );
@@ -601,49 +630,54 @@
          }
          /** using placeholders [_1, _6] */
          else if constexpr (find_type_v<decltype(placeholders::_6), std::remove_reference_t<Class>, std::remove_reference_t<Args>...>) {
-            return [mfp, thisptr, args...]
-                   (auto&& arg1, auto&& arg2, auto&& arg3, auto&& arg4, auto&& arg5, auto&& arg6) {
+            return [mfp, thisptr=__FORWARD(thisptr), ...args=__FORWARD(args)]
+                   (auto&& arg1, auto&& arg2, auto&& arg3, auto&& arg4, auto&& arg5, auto&& arg6) mutable {
                      return __INVOKE_MEM_FN(__FORWARD(arg1),__FORWARD(arg2),__FORWARD(arg3),
                                             __FORWARD(arg4),__FORWARD(arg5),__FORWARD(arg6) );
                    };  
          }
          /** using placeholders [_1, _5] */
          else if constexpr (find_type_v<decltype(placeholders::_5), std::remove_reference_t<Class>, std::remove_reference_t<Args>...>) {
-            return [mfp, thisptr, args...] 
-                   (auto&& arg1, auto&& arg2, auto&& arg3, auto&& arg4, auto&& arg5) {
+            return [mfp, thisptr=__FORWARD(thisptr), ...args=__FORWARD(args)]
+                   (auto&& arg1, auto&& arg2, auto&& arg3, auto&& arg4, auto&& arg5) mutable {
                      return __INVOKE_MEM_FN(__FORWARD(arg1),__FORWARD(arg2),__FORWARD(arg3),
                                             __FORWARD(arg4),__FORWARD(arg5) );
                    };  
          }
          /** using placeholders [_1, _4] */
          else if constexpr (find_type_v<decltype(placeholders::_4), std::remove_reference_t<Class>, std::remove_reference_t<Args>...>) {
-            return [mfp, thisptr, args...] (auto&& arg1, auto&& arg2, auto&& arg3, auto&& arg4) {
+            return [mfp, thisptr=__FORWARD(thisptr), ...args=__FORWARD(args)]
+                   (auto&& arg1, auto&& arg2, auto&& arg3, auto&& arg4) mutable {
                      return __INVOKE_MEM_FN(__FORWARD(arg1),__FORWARD(arg2),__FORWARD(arg3),__FORWARD(arg4) );
                    }; 
          }
          /** using placeholders [_1, _3] */
          else if constexpr (find_type_v<decltype(placeholders::_3), std::remove_reference_t<Class>, std::remove_reference_t<Args>...>) {
-            return [mfp, thisptr, args...] (auto&& arg1, auto&& arg2, auto&& arg3) {
+            return [mfp, thisptr=__FORWARD(thisptr), ...args=__FORWARD(args)] 
+                   (auto&& arg1, auto&& arg2, auto&& arg3) mutable {
                      return __INVOKE_MEM_FN(__FORWARD(arg1),__FORWARD(arg2),__FORWARD(arg3) );
                    };  
          }
          /** using placeholders [_1, _2] */
          else if constexpr (find_type_v<decltype(placeholders::_2), std::remove_reference_t<Class>, std::remove_reference_t<Args>...>) {
-            return [mfp, thisptr, args...] (auto&& arg1, auto&& arg2) {
+            return [mfp, thisptr=__FORWARD(thisptr), ...args=__FORWARD(args)]
+                   (auto&& arg1, auto&& arg2) mutable {
                      return __INVOKE_MEM_FN(__FORWARD(arg1),__FORWARD(arg2) );
                    }; 
          }
          /** using placeholders [_1] */
          else if constexpr (find_type_v<decltype(placeholders::_1), std::remove_reference_t<Class>, std::remove_reference_t<Args>...>) {
-            return [mfp, thisptr, args...] (auto&& arg1) {
+            return [mfp, thisptr=__FORWARD(thisptr), ...args=__FORWARD(args)]
+                   (auto&& arg1) mutable {
                     return __INVOKE_MEM_FN(__FORWARD(arg1) );
                    };
          }
          /** not using placeholders */
          else {
-           return [mfp, thisptr, args...] {
-                    return (bind_this<ThisType>(__FORWARD(thisptr) ).*mfp)
-                           (std::forward<Args>(args)...);
+           return [mfp, thisptr=__FORWARD(thisptr), ...args=__FORWARD(args)] () mutable {
+                    return (bind_this<ThisType>(
+                                bind_arg<Class>(__FORWARD(thisptr) )
+                           ).*mfp)  (bind_arg<Args>(__FORWARD(args) )...);
                   };
          }
        }
