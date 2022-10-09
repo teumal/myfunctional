@@ -79,7 +79,7 @@
         template<typename T, typename...Tn>
         constexpr bool find_type_v = find_type<T,Tn...>::result;
         
-      
+        
         /******************
          * remove_const_ref
          * remove_const_ref_t
@@ -221,6 +221,7 @@
        
        /****************
         * is_function_reference
+        * is_function_reference_v
         ***************/
 
        template<typename T>
@@ -242,6 +243,30 @@
        
        template<typename T>
        constexpr bool is_function_reference_v = is_function_reference<T>::result;
+       
+       /***********************
+        * is_array_reference
+        * is_array_reference_v
+        ***********************/
+       
+       template<typename T>
+       struct is_array_reference {
+         constexpr static bool result = false;  
+       };
+       
+       template<typename T, size_t SIZE>
+       struct is_array_reference<T(&)[SIZE]> {
+         constexpr static bool result = true;
+       };
+       
+       template<typename T, size_t SIZE>
+       struct is_array_reference<T(&&)[SIZE]> {
+         constexpr static bool result = true;
+       };
+       
+       template<typename T>
+       constexpr bool is_array_reference_v = is_array_reference<T>::result;
+       
     };
     
 // }
