@@ -151,9 +151,9 @@
            static Ret invoke(function& fn, Args&&...args)
            requires std::is_invocable_v<Functor,Args...> && 
                     std::is_same_v<std::invoke_result_t<Functor,Args...>,Ret> {
-               using OriginFunctor = 
-                  std::conditional_t<std::is_function_v<std::remove_reference_t<Functor>>,
-                                     RawFunctor,Functor>;
+               using OriginFunctor = std::conditional_t<
+                  is_function_reference_v<Functor>,RawFunctor,Functor
+               >;
                if constexpr (sizeof(RawFunctor) <= 16) {
                    return std::forward<OriginFunctor>(*reinterpret_cast<RawFunctor*>(fn.m_closure_local))  
                           (std::forward<Args>(args)...);
@@ -361,6 +361,21 @@
            /** checks if the target is empty */
            operator bool() const noexcept  {
                return m_invoke;
+           }
+           
+           /** trace this function object */
+           void trace(const char* name) const {
+               int64_t* p = (int64_t*) m_closure_local;
+               
+               printf("/////////////////////////\n"
+                      "%s::\n"
+                      "m_closure_local: %zx %zx\n"
+                      "m_closure_global: %p\n"
+                      "m_closure_maxsz: %zd\n",
+                      name,p[1], p[0], m_closure_global, m_closure_maxsz);
+               std::cout << "m_invoke: " << m_invoke << '\n'
+                         << "m_operate: " << m_operate << '\n'
+                         << "/////////////////////////\n\n";
            }
        };
        
