@@ -24,7 +24,7 @@
         
         template<size_t align, size_t len>
         struct aligned_storage {
-          alignas(align) char buf[len];
+          alignas(align) std::byte buf[len];
         };
         
         
