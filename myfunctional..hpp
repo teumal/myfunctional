@@ -1,6 +1,7 @@
 #ifndef MYFUNCTIONAL_HPP // {
     # include<exception>
     # include<typeinfo>
+    # include<cstddef>
     # include"mytype_traits.hpp"
     # define MYFUNCTIONAL_HPP
     
@@ -111,8 +112,8 @@
            };
            using InvokeType       = Ret(*)(function&, Args&&...);
            using ClosureOperation = void(*)(const function&, void*, Operation);
-           using ClosureType1     = char[16];
-           using ClosureType2     = char*;
+           using ClosureType1     = std::byte[16];
+           using ClosureType2     = std::byte*;
            using ClosureSize      = size_t;
 
 
@@ -151,12 +152,15 @@
            static Ret invoke(function& fn, Args&&...args)
            requires std::is_invocable_v<Functor,Args...> && 
                     std::is_same_v<std::invoke_result_t<Functor,Args...>,Ret> {
+               using OriginFunctor = std::conditional_t<
+                  is_function_reference_v<Functor>,RawFunctor,Functor
+               >;
                if constexpr (sizeof(RawFunctor) <= 16) {
-                   return std::forward<Functor>(*reinterpret_cast<RawFunctor*>(fn.m_closure_local))  
+                   return std::forward<OriginFunctor>(*reinterpret_cast<RawFunctor*>(fn.m_closure_local))  
                           (std::forward<Args>(args)...);
                }
                else {
-                   return std::forward<Functor>(*reinterpret_cast<RawFunctor*>(fn.m_closure_global))  
+                   return std::forward<OriginFunctor>(*reinterpret_cast<RawFunctor*>(fn.m_closure_global))  
                           (std::forward<Args>(args)...);
                }
            }
@@ -167,7 +171,7 @@
            static void operate(const function& fn, void* out, Operation op)
            requires (FunctorSize<=16) {
                switch(op) {
-                case Operation::TARGET:      *reinterpret_cast<const char**>(out) = fn.m_closure_local; break;
+                case Operation::TARGET:      *reinterpret_cast<const std::byte**>(out) = fn.m_closure_local; break;
                 case Operation::TARGET_TYPE: *reinterpret_cast<const std::type_info**>(out) = &typeid(Functor); break;
                 case Operation::CONSTRUCT:   new(reinterpret_cast<function*>(out)->m_closure_local )
                                              Functor(*reinterpret_cast<const Functor*>(fn.m_closure_local) ); break;
@@ -183,7 +187,7 @@
                function& fn2 = *reinterpret_cast<function*>(out);
                
                switch(op) {
-                case Operation::TARGET:      *reinterpret_cast<const char**>(out) = fn.m_closure_global; break;
+                case Operation::TARGET:      *reinterpret_cast<const std::byte**>(out) = fn.m_closure_global; break;
                 case Operation::TARGET_TYPE: *reinterpret_cast<const std::type_info**>(out) = &typeid(Functor); break;
                 case Operation::CONSTRUCT:   if(fn2.m_closure_maxsz < FunctorSize) {
                                                if(fn2.m_closure_global) delete fn2.m_closure_global;
@@ -292,9 +296,11 @@
                if(m_operate) {
                   m_operate(*this, nullptr, Operation::DESTRUCT);
                }
-               other.m_operate(other, this, Operation::CONSTRUCT);
-               m_invoke        = other.m_invoke;
-               m_operate       = other.m_operate;
+               if(other.m_operate) {
+                other.m_operate(other, this, Operation::CONSTRUCT);
+               }
+               m_invoke  = other.m_invoke;
+               m_operate = other.m_operate;
                return *this;
            }
            
@@ -356,6 +362,21 @@
            /** checks if the target is empty */
            operator bool() const noexcept  {
                return m_invoke;
+           }
+           
+           /** trace this function object */
+           void trace(const char* name) const {
+               int64_t* p = (int64_t*) m_closure_local;
+               
+               printf("/////////////////////////\n"
+                      "%s::\n"
+                      "m_closure_local: %zx %zx\n"
+                      "m_closure_global: %p\n"
+                      "m_closure_maxsz: %zd\n",
+                      name,p[1], p[0], m_closure_global, m_closure_maxsz);
+               std::cout << "m_invoke: " << m_invoke << '\n'
+                         << "m_operate: " << m_operate << '\n'
+                         << "/////////////////////////\n\n";
            }
        };
        
@@ -684,4 +705,4 @@
      
     };
 // }
-#endif
+#
