@@ -35,17 +35,20 @@
        /*****************
         * print_type
         *****************/
-        template<typename...Tn>
-        constexpr void print_type(const char* endstr="") {
-            const size_t sz = sizeof(__PRETTY_FUNCTION__);
-            char out[sz];
-            for(int i=0; i<sz; ++i) {
-                out[i] = __PRETTY_FUNCTION__[i];
-            }
-            out[sz-3] = '\0';
-            std::cout << strstr(out,"Tn = {")+6 << endstr;
-        }  
         
+        #if defined(__GUNC__) // {
+          template<typename...Tn>
+          constexpr void print_type(const char* endstr="") {
+              const size_t sz = sizeof(__PRETTY_FUNCTION__);
+              char out[sz];
+              for(int i=0; i<sz; ++i) {
+                  out[i] = __PRETTY_FUNCTION__[i];
+              }
+              out[sz-3] = '\0';
+              std::cout << strstr(out,"Tn = {")+6 << endstr;
+          }  
+        // }
+        #endif
         
         /*********************
          * find_type
