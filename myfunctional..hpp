@@ -94,15 +94,24 @@
       
       /********************
        * function
+       * function<Ret(Args......)>
        * function<Ret(Args...)>
        ********************/
        
        template<typename T>
        class function {
           static_assert(always_false<T>,
-                        "wrong type of template parameter (1,should be \"function\")");  
+                        "wrong type of template parameter (1,must be \"function\")");  
        };
        
+       
+       /** specialization for variadic function */
+       template<typename Ret, typename...Args>
+       class function<Ret(Args......)> {
+          static_assert(always_false<Ret(Args......)>,
+                        "wrong type of template parameter (1, must be \"non-variadic function\")");
+       };
+        
        
        /** specialization for non-variadic function */
        template<typename Ret, typename...Args>
