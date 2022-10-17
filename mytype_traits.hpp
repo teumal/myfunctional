@@ -36,7 +36,7 @@
         * print_type
         *****************/
         
-        #if defined(__GUNC__) // {
+        #if defined(__GNUC__) // {
           template<typename...Tn>
           constexpr void print_type(const char* endstr="") {
               const size_t sz = sizeof(__PRETTY_FUNCTION__);
@@ -69,6 +69,13 @@
               out[sz-3] = '\0';
               std::cout << strstr(out,"Tn = <")+6 << endstr;
           }  
+        // }
+        
+        #else // {
+          template<typename...Tn>
+          constexpr void print_type(const char* endstr="") {
+            std::cout << "the general version of \"print_type\" function is called\n";
+          }
         // }
         #endif
         
