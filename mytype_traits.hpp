@@ -41,7 +41,7 @@
           constexpr void print_type(const char* endstr="") {
               const size_t sz = sizeof(__PRETTY_FUNCTION__);
               char out[sz];
-              for(int i=0; i<sz; ++i) {
+              for(size_t i=0; i<sz; ++i) {
                   out[i] = __PRETTY_FUNCTION__[i];
               }
               out[sz-3] = '\0';
@@ -63,7 +63,7 @@
           constexpr void print_type(const char* endstr="") {
               const size_t sz = sizeof(__PRETTY_FUNCTION__);
               char out[sz];
-              for(int i=0; i<sz; ++i) {
+              for(size_t i=0; i<sz; ++i) {
                   out[i] = __PRETTY_FUNCTION__[i];
               }
               out[sz-3] = '\0';
