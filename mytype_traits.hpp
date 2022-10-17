@@ -48,6 +48,15 @@
               std::cout << strstr(out,"Tn = {")+6 << endstr;
           }  
         // }
+        
+        #elif defined(_MSC_VER) // {
+           template<typename...Tn>
+           constexpr void print_type(const char* endstr="") {
+             char out[] = __FUNCSIG__;
+             out[sizeof(__FUNCSIG__) - 16] = '\0';
+             std::cout << strstr(out,"<")+1 << endstr;
+           }
+        // }
         #endif
         
         /*********************
