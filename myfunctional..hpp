@@ -307,7 +307,8 @@
            /** move the target of other to this */
            function& operator=(function&& other) {
            	   memcpy(this, &other, sizeof(function) );
-               other = nullptr;
+               other.m_invoke  = nullptr;
+               other.m_operate = nullptr;
                return *this;
            }
            
