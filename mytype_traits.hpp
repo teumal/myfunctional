@@ -50,14 +50,29 @@
         // }
         
         #elif defined(_MSC_VER) // {
-           template<typename...Tn>
-           constexpr void print_type(const char* endstr="") {
-             char out[] = __FUNCSIG__;
-             out[sizeof(__FUNCSIG__) - 16] = '\0';
-             std::cout << strstr(out,"<")+1 << endstr;
-           }
+          template<typename...Tn>
+          constexpr void print_type(const char* endstr="") {
+            char out[] = __FUNCSIG__;
+            out[sizeof(__FUNCSIG__) - 16] = '\0';
+            std::cout << strstr(out,"<")+1 << endstr;
+          }
+        // }
+        
+        #elif defined(__clang__) // {
+          template<typename...Tn>
+          constexpr void print_type(const char* endstr="") {
+              const size_t sz = sizeof(__PRETTY_FUNCTION__);
+              char out[sz];
+              for(int i=0; i<sz; ++i) {
+                  out[i] = __PRETTY_FUNCTION__[i];
+              }
+              out[sz-3] = '\0';
+              std::cout << strstr(out,"Tn = <")+6 << endstr;
+          }  
         // }
         #endif
+        
+        
         
         /*********************
          * find_type
