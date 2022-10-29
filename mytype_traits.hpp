@@ -246,6 +246,25 @@
         >;
         
         
+        /**************
+         * concept NotEqual
+         **************/
+        
+        template<typename T1, typename T2>
+        concept NotEqual = !std::is_same_v<
+          std::remove_cvref_t<T1>, 
+          std::remove_cvref_t<T2> 
+        >;
+        
+        
+        /****************
+         * concept Callable
+         ****************/
+         
+        template<typename Ret, typename Functor, typename...Args>
+        concept Callable = std::is_invocable_r_v<Ret,Functor,Args...>;
+        
+        
         /****************
          * is_function_reference
          * is_function_reference_v
