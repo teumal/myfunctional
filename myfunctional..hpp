@@ -18,13 +18,13 @@
             template<size_t N> 
             struct Placeholder { constexpr static size_t nth = N; };
             
-            constexpr Placeholder<1> _1;
-            constexpr Placeholder<2> _2;
-            constexpr Placeholder<3> _3;
-            constexpr Placeholder<4> _4;
-            constexpr Placeholder<5> _5;
-            constexpr Placeholder<6> _6;
-            constexpr Placeholder<7> _7;
+            constexpr static Placeholder<1> _1;
+            constexpr static Placeholder<2> _2;
+            constexpr static Placeholder<3> _3;
+            constexpr static Placeholder<4> _4;
+            constexpr static Placeholder<5> _5;
+            constexpr static Placeholder<6> _6;
+            constexpr static Placeholder<7> _7;
 
             /************
              * is_placeholder
@@ -34,13 +34,13 @@
             template<typename T>
             struct is_placeholder {
               constexpr static bool result = 
-                std::is_same_v<T, const Placeholder<1>> ||
-                std::is_same_v<T, const Placeholder<2>> ||
-                std::is_same_v<T, const Placeholder<3>> ||
-                std::is_same_v<T, const Placeholder<4>> ||
-                std::is_same_v<T, const Placeholder<5>> ||
-                std::is_same_v<T, const Placeholder<6>> ||
-                std::is_same_v<T, const Placeholder<7>>;
+                std::is_same_v<T, decltype(_1)> ||
+                std::is_same_v<T, decltype(_2)> ||
+                std::is_same_v<T, decltype(_3)> ||
+                std::is_same_v<T, decltype(_4)> ||
+                std::is_same_v<T, decltype(_5)> ||
+                std::is_same_v<T, decltype(_6)> ||
+                std::is_same_v<T, decltype(_7)>;
             };
             
             // helper variable.
@@ -222,9 +222,7 @@
          
         // bind any closure type, but mfp.
         template<typename Functor, typename...Args>
-        constexpr auto bind(Functor&& ftor, Args&&...args) 
-        requires !MFP<Functor> && Callable<void, Functor, Args...> {
-            
+        constexpr auto bind(Functor&& ftor, Args&&...args) requires !MFP<Functor> {
             using RawFunctor = decay_function_t<std::remove_reference_t<Functor>>;
             using InvokeType = std::conditional_t<is_function_reference_v<Functor>,RawFunctor, Functor&&>;
             
@@ -312,8 +310,11 @@
          
         template<typename T>
         constexpr auto ref(T& t) { 
+            using type = std::remove_const_t<
+              std::remove_reference_t<T>
+            >;
             return reference_wrapper(
-                const_cast<soo::remove_const_ref_t<T>&>(t) 
+                const_cast<type&>(t) 
             ); 
         }
         
