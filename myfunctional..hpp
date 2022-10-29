@@ -222,16 +222,19 @@
          
         // bind any closure type, but mfp.
         template<typename Functor, typename...Args>
-        constexpr auto bind(Functor&& ftor, Args&&...args) {
+        constexpr auto bind(Functor&& ftor, Args&&...args) 
+        requires !MFP<Functor> && Callable<void, Functor, Args...> {
+            
             using RawFunctor = decay_function_t<std::remove_reference_t<Functor>>;
             using InvokeType = std::conditional_t<is_function_reference_v<Functor>,RawFunctor, Functor&&>;
             
             return [m_ftor=__FORWARD(ftor), ...m_args=__FORWARD(args)] 
                    (auto&&...args) mutable -> decltype(auto) {
-                       static_assert(sizeof...(args)==detail::bind_num<Args...>);
+                       static_assert(!(sizeof...(args)>detail::bind_num<Args...>), "too many arguments to operator()");
+                       static_assert(!(sizeof...(args)<detail::bind_num<Args...>), "too few arguments to operator()");
                        
                        return static_cast<InvokeType>(m_ftor) 
-                              (detail::bind_arg<Args>(__FORWARD(m_args), __FORWARD(args)...)...);
+                              (detail::bind_arg<Args>(m_args, __FORWARD(args)...)...);
                    };
         }
         
@@ -240,14 +243,15 @@
         template<MFP Functor, typename Class, typename...Args>
         constexpr auto bind(Functor&& mfp, Class&& pthis, Args&&...args) {
             using ThisType = this_type_t<std::remove_reference_t<Functor>>;
-            
+
             return [m_mfp=__FORWARD(mfp), m_this=__FORWARD(pthis), ...m_args=__FORWARD(args)]
                    (auto&&...args) mutable -> decltype(auto) {
-                      static_assert(sizeof...(args)==detail::bind_num<Class, Args...>);
-                      
+                      static_assert(!(sizeof...(args)>detail::bind_num<Class,Args...>), "too many arguments to operator()");
+                      static_assert(!(sizeof...(args)<detail::bind_num<Class,Args...>), "too few arguments to operator()");
+
                       return (detail::bind_this<ThisType>(
-                                detail::bind_arg<Class>(__FORWARD(m_this), __FORWARD(args)...)
-                             ).*m_mfp) (detail::bind_arg<Args>(__FORWARD(m_args), __FORWARD(args)...)...);
+                                detail::bind_arg<Class>(m_this, __FORWARD(args)...)
+                             ).*m_mfp) (detail::bind_arg<Args>(m_args, __FORWARD(args)...)...);
                    };
         }
         
@@ -287,9 +291,17 @@
             operator T&() const { return *m_ptr; }
             T& get() const { return *m_ptr; }
             
-            template<typename...Args>
+            template<typename...Args> requires !MFP<T>
             decltype(auto) operator()(Args&&...args) const {
                 return (*m_ptr)(std::forward<Args>(args)...);
+            }
+            
+            template<typename Class, typename...Args> requires MFP<T>
+            decltype(auto) operator()(Class&& pthis, Args&&...args) const {
+                using ThisType = this_type_t<T>;
+                return (detail::bind_this<ThisType>(
+                          std::forward<Class>(pthis)
+                        ).**m_ptr) (std::forward<Args>(args)...);
             }
         };
         
@@ -299,12 +311,14 @@
          *****************/
          
         template<typename T>
-        constexpr auto ref(const T& t) { 
-            return reference_wrapper(const_cast<T&>(t) ); 
+        constexpr auto ref(T& t) { 
+            return reference_wrapper(
+                const_cast<soo::remove_const_ref_t<T>&>(t) 
+            ); 
         }
         
         template<typename T>
-        constexpr void ref(const T&&) = delete;
+        constexpr void ref(T&&) = delete;
         
         
         /*****************
@@ -312,12 +326,12 @@
          *****************/
          
         template<typename T>
-        constexpr auto cref(const T& t) {
+        constexpr auto cref(T& t) {
             return reference_wrapper(t);
         }
         
         template<typename T>
-        constexpr void cref(const T&&) = delete;
+        constexpr void cref(T&&) = delete;
         
         
         /******************
@@ -344,6 +358,17 @@
            using ClosurePtr  = std::byte*;
            using ClosureSize = size_t;
            
+           // allocate dynamic storage.
+           template<size_t FunctorSize>
+           void alloc() {
+                if(m_bufptr==m_buf_local || m_capacity < FunctorSize) {
+                    if(m_bufptr!=m_buf_local) delete m_bufptr;
+                    m_capacity = FunctorSize + 63 & -64;       // m_capacity's lifetime begins.
+                    m_bufptr   = (new aligned_storage<FunctorSize+63&-64,
+                                                      FunctorSize+63&-64>)->buf; // must be a muliple of 64
+                }
+           }
+           
            // invoke 'member function' with 'this'.
            template<MFP Functor, typename Class, typename...Params>
            static Ret invoke(function& fn, Class&& pthis, Params&&...params) {
@@ -356,12 +381,13 @@
         
            // invoke 'any closure types'.
            template<typename RawFunctor, typename Functor>
-           static Ret invoke(function& fn, Args&&...args) {
+           static Ret invoke(function& fn, Args&&...args) requires !MFP<RawFunctor> {
                using OriginalType = std::conditional_t<
                  is_function_reference_v<Functor>, RawFunctor, Functor
                >;
-               return std::forward<OriginalType>(*reinterpret_cast<RawFunctor*>(fn.m_bufptr) )
-                      (std::forward<Args>(args)...);
+               return static_cast<OriginalType>(
+                          *reinterpret_cast<RawFunctor*>(fn.m_bufptr)
+                      )  (std::forward<Args>(args)...);
            }
            
            
@@ -372,25 +398,19 @@
                switch(op) {
                  case Operation::TARGET_TYPE: *reinterpret_cast<const std::type_info**>(out) = &typeid(Functor); break;
                  case Operation::DESTRUCT:    reinterpret_cast<Functor*>(fn.m_bufptr)->~Functor(); break;
-                 case Operation::CONSTRUCT:   fnout = reinterpret_cast<function*>(out);
-                                              if constexpr (FunctorSize>8) {
-                                                if(fnout->m_bufptr!=fnout->m_buf_local )
-                                                    if(fnout->m_capacity<FunctorSize ) {
-                                                      delete fnout->m_bufptr; 
-                                                      fnout->m_capacity = FunctorSize+63&-64;
-                                                      fnout->m_bufptr = (new aligned_storage<FunctorSize+63&-64,
-                                                                                             FunctorSize+63&-64>)->buf;
-                                                    }
+                 case Operation::CONSTRUCT:   fnout = static_cast<function*>(out);
+                                              if constexpr (FunctorSize > 8) {
+                                                fnout->alloc<FunctorSize>();
                                               }
                                               new(fnout->m_bufptr) 
-                                              Functor(*reinterpret_cast<const Functor*>(fnout->m_bufptr) ); break;
+                                              Functor(*reinterpret_cast<Functor*>(fn.m_bufptr) ); break;
                };
            }
             
         private:
-           ClosurePtr   m_bufptr  = m_buf_local;
-           InvokeType   m_invoke  = nullptr;
-           ManagerType  m_manager = nullptr;
+           ClosurePtr   m_bufptr;
+           InvokeType   m_invoke;
+           ManagerType  m_manager;
            union {
                alignas(8) 
                ClosureBuf  m_buf_local;
@@ -398,11 +418,36 @@
            };
            
         public:
-           function() = default;                                    // default constructor
-           function(const function& other) { *this = other; }       // copy constructor
-           function(function&& other) { *this = std::move(other); } // move constructor
-           function(std::nullptr_t) {}                              // create an empty function
+           // default constructor
+           function() : m_bufptr(m_buf_local), m_invoke(nullptr), m_manager(nullptr) {}
            
+           // create an empty function
+           function(std::nullptr_t) : m_bufptr(m_buf_local), m_invoke(nullptr), m_manager(nullptr) {}
+           
+           // copy constructor
+           function(const function& other) { 
+               m_bufptr  = m_buf_local;
+               m_invoke  = other.m_invoke;
+               m_manager = other.m_manager; 
+               
+               if(other.m_manager) {
+                   other.m_manager(other, this, Operation::CONSTRUCT);
+               }
+           }    
+           
+           // move constructor
+           function(function&& other) { 
+               memcpy(this, &other, sizeof(function) );
+               
+               if(other.m_bufptr==other.m_buf_local) {
+                   m_bufptr = m_buf_local;
+               }
+               other.m_bufptr  = other.m_buf_local;
+               other.m_invoke  = nullptr;
+               other.m_manager = nullptr;
+           } 
+           
+                
            // destructor
            ~function() {  
                if(m_manager) m_manager(*this, nullptr, Operation::DESTRUCT);
@@ -410,8 +455,8 @@
             }
            
             // initialize the target with std::forward<Functor>(ftor)
-            template<typename Functor>
-            function(Functor&& ftor) {
+            template<NotEqual<function> Functor>
+            function(Functor&& ftor) requires Callable<Ret,Functor,Args...> {
                 using RawFunctor = decay_function_t< // int(&)() => int() => int(*)()
                   std::remove_reference_t<Functor>
                 >; 
@@ -419,12 +464,15 @@
                     m_invoke = function::invoke<RawFunctor,Args...>; // invoke for member function pointer
                 }
                 else {
-                    m_invoke = function::invoke<RawFunctor,Functor>; // general version invoke
+                    m_invoke = function::invoke<RawFunctor,Functor&&>; // general version of invoke
                 }
                 if constexpr (sizeof(RawFunctor)>8) {
-                    m_capacity = sizeof(RawFunctor) + 63 & -64;
+                    m_capacity = sizeof(RawFunctor) + 63 & -64; // m_capacity's lifetime begins.
                     m_bufptr   = (new aligned_storage<sizeof(RawFunctor)+63&-64,
                                                       sizeof(RawFunctor)+63&-64>)->buf;
+                }
+                else {
+                    m_bufptr = m_buf_local;
                 }
                 m_manager = function::manager<sizeof(RawFunctor), RawFunctor>;
                 new(m_bufptr) RawFunctor(std::forward<Functor>(ftor) );
@@ -432,29 +480,24 @@
             
             
             // assign the new target with std;:forward<Functor>(ftor)
-            template<typename Functor>
-            function& operator=(Functor&& ftor) {
+            template<NotEqual<function> Functor>
+            function& operator=(Functor&& ftor) requires Callable<Ret,Functor,Args...> {
+                
                 using RawFunctor = decay_function_t< // int(&)() => int() => int(*)()
                   std::remove_reference_t<Functor>
                 >; 
                 if(m_manager) {
-                    m_manager(*this, nullptr, Operation::DESTRUCT); // call the current closure's destructor.
+                    m_manager(*this, nullptr, Operation::DESTRUCT); // call ~ClosureType()
                 }
                 
                 if constexpr (std::is_member_function_pointer_v<RawFunctor>) {
                     m_invoke = function::invoke<RawFunctor,Args...>; // invoke for member function pointer
                 }
                 else {
-                    m_invoke = function::invoke<RawFunctor,Functor>; // general version invoke
+                    m_invoke = function::invoke<RawFunctor,Functor>; // general version of invoke
                 }
                 if constexpr (sizeof(RawFunctor)>8) {
-                    if(m_bufptr!=m_buf_local )
-                        if(m_capacity<sizeof(RawFunctor) ) {
-                          delete m_bufptr;
-                          m_capacity = sizeof(RawFunctor) + 63 & -64;
-                          m_bufptr = (new aligned_storage<sizeof(RawFunctor)+63&-64,
-                                                          sizeof(RawFunctor)+63&-64>)->buf;
-                        }
+                    alloc<sizeof(RawFunctor)>();
                 }
                 m_manager = function::manager<sizeof(RawFunctor), RawFunctor>;
                 new(m_bufptr) RawFunctor(std::forward<Functor>(ftor) );
@@ -465,7 +508,7 @@
             // assign a copy of target of other
             function& operator=(const function& other) {
                 if(m_manager) {
-                    m_manager(*this, nullptr, Operation::DESTRUCT);
+                    m_manager(*this, nullptr, Operation::DESTRUCT); // call ~ClosureType()
                 }
                 if(other.m_manager) {
                     other.m_manager(other, this, Operation::CONSTRUCT);
@@ -478,6 +521,9 @@
             
             // move the target of other to this
             function& operator=(function&& other) {
+                if(m_manager) {
+                    m_manager(*this, nullptr, Operation::DESTRUCT); // call ~ClosureType()
+                }
                 memcpy(this, &other, sizeof(function) );
                 other.m_invoke  = nullptr;
                 other.m_manager = nullptr;
