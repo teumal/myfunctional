@@ -283,7 +283,7 @@ int main()
 template<typename T> 
 struct is_function_reference;
 ```
-템플릿 인자 ``T`` 가 ``int(&)()`` 와 같은 ``static function`` 의 레퍼런스라면 ``true``. 아니라면 ``false`` 를 돌려줍니다. ``int(*)()const volatile`` 과 같은 ``member function`` 의 레퍼런스는 올바른 형식이 아닙니다. 
+템플릿 인자 ``T`` 가 ``int(&)()`` 와 같은 ``static function`` 의 레퍼런스라면 ``true``. 아니라면 ``false`` 를 돌려줍니다. ``int(&)()const volatile`` 과 같은 ``member function`` 의 레퍼런스는 올바른 형식이 아닙니다. 
 
 ### Template parameter
 **T** - function reference 인지 검사할 타입.
@@ -371,9 +371,7 @@ constexpr static Placeholder<7> _7;
 ``soo::bind`` 함수의 인자로 사용됩니다. ``extern`` 으로 선언되어 있는 ``std::placeholders::_N`` 과는 다르게 ``constexpr static Placeholder<1> _N`` 으로 선언되어 있습니다. ``soo::bind`` 가 반환한 함수 객체에서 적어도 크기 1의 공간을 차지합니다. 
 
 ### Member variable
-``` c++
-constexpr static size_t nth = N;
-```
+**nth** - ``Placeholder`` 의 번호를 나타내는 정수.
 
 ### Example
 ``` c++
@@ -462,6 +460,71 @@ int main()
 
 </td></tr></table>
 
+    
+    
+<table><tr><td>
+    
+## __FORWARD
+<sub> Defined in "myfunctional.hpp"</sub>
+```c++
+# define __FORWARD(tn) 
+```
+``std::forward`` 의 역할을 수행하는 매크로입니다.  ``auto&& a`` 와 같은 forwarding reference 처럼,  template argument 의 타입을 알 수 없는 경우에 사용합니다. 
+    
+### Parameter
+**tn** - value category 를 타입과 일치하도록 바꾸고자 하는 변수의 이름.
+    
+### Expanded value
+``static_cast<decltype(tn)>(tn)``
+    
+### Example
+``` c++
+# include"myfunctional.hpp"
+
+struct A {
+    A() { std::cout << __PRETTY_FUNCTION__ << std::endl; }
+    A(const A&) { std::cout << __PRETTY_FUNCTION__ << std::endl; }
+    A(A&&) { std::cout << __PRETTY_FUNCTION__ << std::endl; }
+};
+
+void foo(auto&& a) {
+    A b(__FORWARD(a) );
+}
 
 
+int main()
+{
+   foo(A{} );    // A::A()
+                 // A::A(A&&)
+   foo(*new A);  // A::A()
+                 // A::A(const A&)
+} 
+```
+</td></tr></table>
 
+    
+<table><tr><td>
+
+## soo::detail::is_nth_placeholder
+<sub> Defined in "myfunctional.hpp"</sub>
+``` c++
+template<size_t N, typename T>
+struct is_nth_placeholder;
+```
+주어진 템플릿 인자 ``T`` 가 ``Placeholder<N>`` 이라면 ``true``, 아니라면 ``false`` 를 돌려줍니다. 
+    
+### Template Parameter
+**N** -  
+**T** - 
+    
+### Member value
+**result** - ``T`` 가 ``Placeholder<N>`` 이라면
+    
+### Helper variable template
+``` c++
+template<size_t N, typename T>
+constexpr bool is_nth_placeholder_v = is_nth_placeholder<N,T>::result; 
+```
+### 
+</td></tr></table> 
+    
