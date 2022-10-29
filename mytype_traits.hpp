@@ -64,25 +64,7 @@
         template<typename T>
         using decay_function_t = typename decay_function<T>::type;
         
-        
-        /***************
-         * remove_const_ref
-         * remove_const_ref_t
-         ***************/
-        
-        // primary template
-        template<typename T>
-        struct remove_const_ref {
-            using type = std::remove_const_t<
-              std::remove_reference_t<T>
-            >;
-        };
-        
-        // helper type.
-        template<typename T>
-        using remove_const_ref_t = typename remove_const_ref<T>::type;
-        
-        
+
         /******************
          * this_type
          * this_type_t
