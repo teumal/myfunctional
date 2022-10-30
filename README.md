@@ -801,7 +801,7 @@ requires std::is_convertible_v<decltype(thisref), ThisType>;  (2)
 ``soo::bind``, ``soo::function`` 의 내부 구현에 사용됩니다. 항상 **reference** 타입을 반환하며, 이 과정에서 어떠한 복사도 일어나지 않습니다. member function pointer 를 invoke 하는 데 필요한 ``'this'`` 피연산자를 항상 ``.*`` 연산자를 사용하도록 레퍼런스 타입으로 만들어줍니다. 
 
 1 ) ``thisptr`` 이 ``std::remove_reference_t<ThisType>*`` 으로 변환될 수 있어야 하며, 결과는 항상 lvalue-reference 입니다(포인터는 항상 lvalue 를 가리키고 있다고 가정합니다). 즉, rvalue-reference 의 ``'this'`` 를 받는 member function 은 호출할 수 없습니다. <br>
-2 ) ``thisref`` 가 ``ThisType`` 으로 변환될 수 있어야 하며, 결과는 ``ThisType`` 입니다. <br>
+2 ) ``thisref`` 가 ``ThisType`` 으로 변환될 수 있어야 하며, 결과는 ``ThisType&&`` 입니다. <br>
 
 ### Template parameter
 **ThisType** - member function pointer 를 호출하기에 가장 적합한 ``'this'`` 의 타입. 보통 ``soo::this_type_t`` 를 사용하여 얻어온 타입이 전달됩니다.
