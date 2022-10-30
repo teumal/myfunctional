@@ -101,7 +101,7 @@
             }
             
             template<typename Args>
-            requires is_function_reference_v<Args> || is_array_reference_v<Args>
+            requires is_function_reference_v<Args&&> || is_array_reference_v<Args&&>
             constexpr decltype(auto) bind_member(auto&& t0) {
                 using RawArgs = std::remove_reference_t<Args>;
                 return std::forward<Args>(
@@ -224,7 +224,7 @@
         template<typename Functor, typename...Args>
         constexpr auto bind(Functor&& ftor, Args&&...args) requires !MFP<Functor> {
             using RawFunctor = decay_function_t<std::remove_reference_t<Functor>>;
-            using InvokeType = std::conditional_t<is_function_reference_v<Functor>,RawFunctor, Functor&&>;
+            using InvokeType = std::conditional_t<is_function_reference_v<Functor&&>,RawFunctor, Functor&&>;
             
             return [m_ftor=__FORWARD(ftor), ...m_args=__FORWARD(args)] 
                    (auto&&...args) mutable -> decltype(auto) {
