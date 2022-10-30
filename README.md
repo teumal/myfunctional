@@ -396,7 +396,7 @@ int main()
     soo::bind(printf,_2,_1,_1,_3), 2, "%d + %d = %d\n", 4
   );
   auto fn2 = soo::bind(
-      printf, "%d\n", soo::bind(soo::bind(strcmp,_1,_1), "hello")
+      printf, "%d\n", soo::bind(strcmp,_1,_1) ("hello")
   );
   auto fmt = soo::bind(&std::string::c_str, _1);
   auto fn3 = soo::bind(
@@ -409,7 +409,7 @@ int main()
  
   fn1(); // 2 + 2 = 4
   fn2(); // 0
-  fn3(1,2,3); // hello world!
+  fn3(1,2,3); // 3,1,2
   
   fn5(); // 8 7 1 5 9 4
   fn4(std::greater<int>{} );
@@ -511,20 +511,379 @@ int main()
 template<size_t N, typename T>
 struct is_nth_placeholder;
 ```
-주어진 템플릿 인자 ``T`` 가 ``Placeholder<N>`` 이라면 ``true``, 아니라면 ``false`` 를 돌려줍니다. 
+주어진 템플릿 인자 ``T`` 가 qualifier 를 모두 떼고 봤을 때, ``Placeholder<N>`` 와 같다면 ``true``, 아니라면 ``false`` 를 돌려줍니다. ``soo::detail::bind_arg`` 의 내부 구현에 사용됩니다. 
     
 ### Template Parameter
-**N** -  
-**T** - 
+**N** - ``Placeholder<N>`` 의 번호 N.
+**T** - ``Placeholder<N>`` 인지 확인할 타입.
     
 ### Member value
-**result** - ``T`` 가 ``Placeholder<N>`` 이라면
+**result** - ``T`` 가 ``Placeholder<N>`` 이라면 ``true``, 이외의 경우에는 ``false``.
     
 ### Helper variable template
 ``` c++
 template<size_t N, typename T>
 constexpr bool is_nth_placeholder_v = is_nth_placeholder<N,T>::result; 
 ```
-### 
+### Example
+``` c++
+# include"myfunctional.hpp"
+using namespace soo::detail;
+using namespace soo::placeholders;
+
+int main()
+{
+    std::cout << std::boolalpha
+              << is_nth_placeholder_v<1,decltype(_1)>         // true
+              << is_nth_placeholder_v<2,decltype(_1)>         // true
+              << is_nth_placeholder_v<3,decltype(std::cout)>; // false
+}
+```
 </td></tr></table> 
     
+<table><tr><td>
+
+## soo::detail::bind_num
+<sub> Defined in "myfunctional.hpp"</sub>
+``` c++
+template<typename...Args>
+constexpr size_t bind_num = 
+ find_type_v<placeholders::Placeholder<7>,std::remove_cvref_t<Args>...> ? 7 :
+ find_type_v<placeholders::Placeholder<6>,std::remove_cvref_t<Args>...> ? 6 :
+ find_type_v<placeholders::Placeholder<5>,std::remove_cvref_t<Args>...> ? 5 :
+ find_type_v<placeholders::Placeholder<4>,std::remove_cvref_t<Args>...> ? 4 :
+ find_type_v<placeholders::Placeholder<3>,std::remove_cvref_t<Args>...> ? 3 :
+ find_type_v<placeholders::Placeholder<2>,std::remove_cvref_t<Args>...> ? 2 :
+ find_type_v<placeholders::Placeholder<1>,std::remove_cvref_t<Args>...> ? 1 : 0;
+```
+``soo::bind`` 함수가 반환한 함수 객체를 invoke 할 시, 필요한 인자의 수를 가지고 있는 ``size_t`` 타입의 입니다. ``...Args`` 에 ``decltype(_1)`` 이 들어있다면 받아야할 인자는 1개이며, ``Args...`` 에 ``decltype(_7)`` 이 들어있다면 받아야할 인자는 7개가 됩니다. ``soo::bind`` 에서는 이 variable template 을 이용해서, ``operator()`` 호출에 필요한 인자가 너무 많거나 적으면, ``static_assert(false)`` 로 컴파일 에러를 내보냅니다.
+
+### Example
+``` c++
+# include"myfunctional.hpp"
+using namespace soo::detail;
+using namespace soo::placeholders;
+
+int main()
+{
+    std::cout << std::boolalpha
+              << bind_num<decltype(_1), decltype(_3), decltype(_7)> // 7
+              << bind_num<int,double, decltype(_4)>                 // 4
+              << bind_num<int&, int(&)[10]>;                        // 0
+}
+```
+</td></tr></table> 
+
+
+<table><tr><td>
+
+## soo::detail::bind_member
+<sub> Defined in "myfunctional.hpp"</sub>
+``` c++
+template<typename Args>
+constexpr decltype(auto) bind_member(auto&& t0);  (1)
+```
+``` c++
+template<typename Args>
+requires is_function_reference_v<Args&&> || is_array_reference_v<Args&&>
+constexpr decltype(auto) bind_member(auto&& t0);  (2)
+```
+``soo::detail::bind_arg`` 의 내부 구현에 사용됩니다. 항상 **reference** 타입을 반환하며, 이 과정에서 어떠한 복사도 일어나지 않습니다. 결과적으로 ``std::forward`` 와 똑같은 역할을 하는 함수입니다.
+
+1 ) 단순히 ``std::forward<Args>(t0)`` 을 반환합니다.  <br>
+2 ) ``Args&&`` 가 ``int(&&)(int,int)`` 또는 ``int(&)(int,int)`` 와 같은 function reference 이거나, ``const char(&&)[6]`` 또는 ``const char(&)[6]`` 와 같은 array reference 인 경우, ``t0`` 이 ``int(*)(int,int)`` 또는 ``const char*`` 으로 decay 되었다는 의미이므로 특별한 처리가 필요합니다. 먼저, ``*reinterpret_cast<std::remove_reference_t<Args>*>(t0)`` 으로 ``t0`` 이 담고 있는 포인터 값을  ``const char(*)[6]`` 와 같은 pointer to array 또는 ``int(*)(int,int)`` 와 같은 pointer to function 타입으로 캐스팅해줍니다(배열의 경우, ``const char(*)[6]`` 라는 배열의 주소값과 배열의 첫 번째 원소의 주소 값인 ``const char*`` 은 서로 같은 곳을 가리킵니다).  그 후, ``std::forward<Args>()`` 을 적용하여 원래 레퍼런스 타입을 반환합니다.
+
+### Template parameter
+**Args** - ``t0`` 의 원래 타입.
+
+### Parameter
+**t0** - perfect forwarding 이 필요한 객체의 레퍼런스.
+
+### Return value
+1 ) ``std::forward<Args>(t0)`` <br>
+2 ) ``std::forward<Args>(*reinterpret_cast<std::remove_referennce_t<Args>*>(t0) )``
+
+### Example
+``` c++
+# include"myfunctional.hpp"
+using namespace soo::detail;
+
+int sum(int a, int b) {
+    return a + b;
+}
+
+void print_array(const char(&arr)[7] ) {
+    for(auto i : arr) {
+        std::cout << i;
+    }
+}
+
+void invoke_sum(int(&fn)(int,int) ) {
+    std::cout << fn(1,2);
+}
+
+void print_int(int&& a) {
+    std::cout << a;
+}
+
+int main()
+{
+   const char* s = "hello\n";
+   int(*fn)(int,int) = sum;
+   int&& a = 10;
+   
+   soo::print_type<
+     decltype(bind_member<const char(&)[7]>(s) ),  // const char (&) [7]
+     decltype(bind_member<int(&)(int,int)>(sum) ), // int (&) (int,int)
+     decltype(bind_member<int>(a) )                // int&&
+   >();
+   
+   // print_array(s); // error: invalid initialization of reference of type `const char (&)[7]` from expression of type `const char*`
+   print_array(bind_member<const char(&)[7]>(s) ); // hello
+   
+   // invoke_sum(fn); // error: invalid initialization of reference of type ‘int (&)(int, int)’ from expression of type ‘int (*)(int, int)’
+   invoke_sum(bind_member<int(&)(int,int)>(fn) ); // 3
+   
+   //print_int(a); // error: cannot bind rvalue reference of type ‘int&&’ to lvalue of type ‘int’
+   print_int(bind_member<int>(a) ); // 10
+}
+```
+
+</td></tr></table> 
+
+
+
+<table><tr><td>
+
+## soo::detail::bind_arg
+<sub> Defined in "myfunctional.hpp"</sub>
+``` c++
+template<typename Args>
+constexpr decltype(auto) bind_arg(auto&& t0);  (1)
+```
+``` c++
+template<typename Args>
+constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1);  (2)
+```
+``` c++
+template<typename Args>
+constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2);  (3)
+```
+``` c++
+template<typename Args>
+constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3);  (4)
+```
+``` c++
+template<typename Args>
+constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3, auto&& t4);  (5)
+```
+``` c++
+template<typename Args>
+constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3, 
+                                  auto&& t4, auto&& t5);    (6)
+```
+``` c++
+template<typename Args>
+constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3, 
+                                  auto&& t4, auto&& t5, auto&& t6);     (7)
+```
+``` c++
+template<typename Args>
+constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3, 
+                                  auto&& t4, auto&& t5, auto&& t6, auto&& t7);  (8)
+```
+``soo::bind`` 의 내부 구현에 사용됩니다. 항상 **reference** 타입을 반환하며, 이 과정에서 어떠한 복사도 일어나지 않습니다. 결과적으로 ``std::forward`` 와 똑같은 역할을 하는 함수입니다. ``t0`` 이 ``_N`` 과 같은 ``Placeholder<N>`` 인 경우 ``t1``,``t2``,..., ``t7`` 중 하나로 바인딩합니다. 이외의 경우, ``t0`` 으로 바인딩합니다.
+
+1 ) ``t0`` 의 값을 그대로 반환합니다. <br>
+2 ) ``t0`` 의 타입에 따라, ``t0``,``t1`` 중 하나로 바인딩합니다. <br>
+3 ) ``t0`` 의 타입에 따라, ``t0``,``t1``,``t2`` 중 하나로 바인딩합니다. <br>
+4 ) ``t0`` 의 타입에 따라, ``t0``,``t1``,..., ``t3`` 중 하나로 바인딩합니다. <br>
+5 ) ``t0`` 의 타입에 따라, ``t0``,``t1``,..., ``t4`` 중 하나로 바인딩합니다. <br>
+6 ) ``t0`` 의 타입에 따라, ``t0``,``t1``,..., ``t5`` 중 하나로 바인딩합니다. <br>
+7 ) ``t0`` 의 타입에 따라, ``t0``,``t1``,..., ``t6`` 중 하나로 바인딩합니다. <br>
+8 ) ``t0`` 의 타입에 따라, ``t0``,``t1``,..., ``t7`` 중 하나로 바인딩합니다. <br>
+
+### Template parameter
+**Args** - ``t0`` 의 원래 타입.
+
+### Parameters
+**t0** - ``soo::bind`` 로 묶어준 인자 중 하나.   <br>
+**t1** - ``_1`` 에 묶어줄 ``soo::bind::<lambda()>::operator()`` 의 인자. <br>
+**t2** - ``_2`` 에 묶어줄 ``soo::bind::<lambda()>::operator()`` 의 인자.<br>
+**t3** - ``_3`` 에 묶어줄 ``soo::bind::<lambda()>::operator()`` 의 인자.<br>
+**t4** - ``_4`` 에 묶어줄 ``soo::bind::<lambda()>::operator()`` 의 인자.<br>
+**t5** - ``_5`` 에 묶어줄 ``soo::bind::<lambda()>::operator()`` 의 인자.<br>
+**t6** - ``_6`` 에 묶어줄 ``soo::bind::<lambda()>::operator()`` 의 인자.<br>
+**t7** - ``_7`` 에 묶어줄 ``soo::bind::<lambda()>::operator()`` 의 인자.<br>
+
+### Return value
+1 ) ``bind_member<Args>(t0)`` <br>
+2 ) ``bind_member<Args>(t0)``, ``__FORWARD(t1)`` 중 하나. <br>
+3 ) ``bind_member<Args>(t0)``, ``__FORWARD(t1)``, ``__FORWARD(t2)`` 중 하나.<br>
+4 ) ``bind_member<Args>(t0)``, ``__FORWARD(t1)``, ``__FORWARD(t2)``, ``__FORWARD(t3)`` 중 하나.<br>
+5 ) ``bind_member<Args>(t0)``, ``__FORWARD(t1)``, ``__FORWARD(t2)``, ..., ``__FORWARD(t4)`` 중 하나.<br>
+6 ) ``bind_member<Args>(t0)``, ``__FORWARD(t1)``, ``__FORWARD(t2)``, ..., ``__FORWARD(t5)`` 중 하나.<br>
+7 ) ``bind_member<Args>(t0)``, ``__FORWARD(t1)``, ``__FORWARD(t2)``, ..., ``__FORWARD(t6)`` 중 하나.<br>
+8 ) ``bind_member<Args>(t0)``, ``__FORWARD(t1)``, ``__FORWARD(t2)``, ..., ``__FORWARD(t7)`` 중 하나.<br>
+
+### Example
+``` c++
+# include"myfunctional.hpp"
+using namespace soo::detail;
+using namespace soo::placeholders;
+# define BINDING_ARGS __FORWARD(arg1),__FORWARD(arg2),__FORWARD(arg3),__FORWARD(arg4),__FORWARD(arg5),__FORWARD(arg6),__FORWARD(arg7)
+
+int sum(int a, int b) {
+    return a + b;
+}
+
+void print_array(const char(&arr)[2] ) {
+    for(auto c : arr) {
+        std::cout << c;
+    }
+    std::cout << std::endl;
+}
+
+
+int main()
+{
+    using func_t  = int(int,int);
+    using cstr_t  = const char[6]; 
+    using cvint_t = const volatile int;
+    
+    int         arg1    = 10;
+    float       arg2    = 2.0f;
+    double      arg3    = 3.14;
+    cstr_t&     arg4    = "hello";
+    func_t&     arg5    = sum;
+    int&&       arg6    = 15;
+    cvint_t&    arg7    = *new cvint_t(20);
+    
+    
+    std::cout << bind_arg<decltype(_1)>(_1, BINDING_ARGS)        // 10
+              << bind_arg<decltype(_4)>(_4, BINDING_ARGS)        // hello
+              << bind_arg<std::nullptr_t>(nullptr, BINDING_ARGS) // nullptr
+              << std::endl;
+    
+    soo::print_type<
+      decltype(  bind_arg<decltype(_1)>(_1,BINDING_ARGS) ), // int&&
+      decltype(  bind_arg<decltype(_2)>(_2,BINDING_ARGS) ), // float&&
+      decltype(  bind_arg<decltype(_3)>(_3,BINDING_ARGS) ), // double&&
+      decltype(  bind_arg<decltype(_4)>(_4,BINDING_ARGS) ), // const char (&) [6]
+      decltype(  bind_arg<decltype(_5)>(_5,BINDING_ARGS) ), // int (&) (int, int)
+      decltype(  bind_arg<decltype(_6)>(_6,BINDING_ARGS) ), // int&&
+      decltype(  bind_arg<decltype(_7)>(_7,BINDING_ARGS) ), // const volatile int&
+      decltype(  bind_arg<int>(10,BINDING_ARGS) )           // int&&
+    >();
+    
+    const char* a = "hi";
+    // print_array(a); // error: invalid initialization of reference of type ‘const char (&)[2]’ from expression of type ‘const char*’
+    print_array(bind_arg<const char(&)[2]>(a) ); // hi
+}
+```
+</td></tr></table> 
+
+
+<table><tr><td>
+
+## soo::detail::bind_this
+<sub> Defined in "myfunctional.hpp"</sub>
+``` c++
+template<typename ThisType>
+constexpr decltype(auto) bind_this(auto&& thisptr) 
+requires std::is_convertible_v<decltype(thisptr), std::remove_reference_t<ThisType>*>;  (1)
+```
+``` c++
+template<typename ThisType>
+constexpr decltype(auto) bind_this(auto&& thisref)
+requires std::is_convertible_v<decltype(thisref), ThisType>;  (2)
+```
+``soo::bind``, ``soo::function`` 의 내부 구현에 사용됩니다. 항상 **reference** 타입을 반환하며, 이 과정에서 어떠한 복사도 일어나지 않습니다. member function pointer 를 invoke 하는 데 필요한 ``'this'`` 피연산자를 항상 ``.*`` 연산자를 사용하도록 레퍼런스 타입으로 만들어줍니다. 
+
+1 ) ``thisptr`` 이 ``std::remove_reference_t<ThisType>*`` 으로 변환될 수 있어야 하며, 결과는 항상 lvalue-reference 입니다(포인터는 항상 lvalue 를 가리키고 있다고 가정합니다). 즉, rvalue-reference 의 ``'this'`` 를 받는 member function 은 호출할 수 없습니다. <br>
+2 ) ``thisref`` 가 ``ThisType`` 으로 변환될 수 있어야 하며, 결과는 ``ThisType`` 입니다. <br>
+
+### Template parameter
+**ThisType** - member function pointer 를 호출하기에 가장 적합한 ``'this'`` 의 타입. 보통 ``soo::this_type_t`` 를 사용하여 얻어온 타입이 전달됩니다.
+
+### Parameter
+**thisptr** - ``std::remove_reference_t<ThisType>*`` 으로 변환될 수 있는 Class 타입. <br>
+**thisref** - ``ThisType`` 으로 변환될 수 있는 Class 타입. <br>
+
+### Return value
+1 ) ``static_cast<RawThis&>(*static_cast<RawThis*>(thisptr) )``. ``RawThis`` 는 ``std::remove_reference_t<ThisType>`` 입니다. <br>
+2 ) ``static_cast<ThisType&&>(static_cast<RawThis&>(thisref) )``. ``RawThis`` 는 ``std::remove_reference_t<ThisType>`` 입니다.
+
+### Example
+``` c++
+# include"myfunctional.hpp"
+# include<string>
+using namespace soo::detail;
+
+struct A {
+    auto foo() const volatile && { return std::string(__PRETTY_FUNCTION__) + "\n"; }
+    auto bar() & { return std::string(__PRETTY_FUNCTION__) + "\n"; }
+};
+
+int main()
+{
+    auto mfp1 = &std::string::c_str;
+    auto mfp2 = &A::foo;
+    auto mfp3 = &A::bar;
+    
+    A* a;
+    const volatile A a2;
+    
+    using ThisType1 = soo::this_type_t<decltype(mfp1)>;
+    using ThisType2 = soo::this_type_t<decltype(mfp2)>;
+    using ThisType3 = soo::this_type_t<decltype(mfp3)>;
+    
+    soo::print_type<
+      ThisType1, // const std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >
+      ThisType2, // const volatile A&&
+      ThisType3  // A&
+    >("\n\n");
+    
+    std::cout << (bind_this<ThisType1>(new std::string("hello\n") ).*mfp1) () // hello
+              << (bind_this<ThisType2>(A{} ).*mfp2) ()                        // auto A::foo() const volatile &&
+              << (bind_this<ThisType3>(soo::ref(*new A) ).*mfp3) ()  // auto A::bar() &
+              << (bind_this<ThisType3>(soo::ref(a) ).*mfp3) ()      // auto A::bar() &
+              
+              // no matching function for call to `bind_this(const volatile A&)`
+              // << (bind_this<ThisType3>(a2).*mfp3) ();  
+              
+              // error: pointer-to-member-function type ‘std::__cxx11::basic_string (A::*)() const volatile &&’ requires an rvalue
+              // << (bind_this<ThisType2>(soo::ref(a) ).*mfp2) (); 
+              
+              << (bind_this<ThisType2>(std::move(a2) ).*mfp2) ();  // auto A::foo() const volatile &&
+}
+```
+
+</td></tr></table> 
+
+
+<table><tr><td>
+
+## soo::bind
+<sub> Defined in "myfunctional.hpp"</sub>
+``` c++
+template<typename Functor, typename...Args>
+constexpr auto bind(Functor&& ftor, Args&&...args) requires !MFP<Functor>;   (1)
+```
+``` c++
+template<MFP Functor, typename Class, typename...Args>
+constexpr auto bind(Functor&& mfp, Class&& pthis, Args&&...args);   (2)
+```
+1 ) ``Functor`` 가 member function pointer 가 아닌 이외의 functoin object 이여야 함. <br>
+2 ) 
+### Template parameter
+**Functor** - any function objects. <br>
+**...Args** - ``Functor`` 에 전달해줄 인자. 
+
+### Parameters
+
+
+### Return value
+
+
+</td></tr></table> 
