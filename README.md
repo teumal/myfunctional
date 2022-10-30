@@ -469,7 +469,7 @@ int main()
 ```c++
 # define __FORWARD(tn) 
 ```
-``std::forward`` 의 역할을 수행하는 매크로입니다.  ``auto&& a`` 와 같은 forwarding reference 처럼,  template argument 의 타입을 알 수 없는 경우에 사용합니다. 
+``std::forward`` 의 역할을 수행하는 매크로입니다.  ``auto&& a`` 와 같은 forwarding reference 처럼,  template argument 의 타입을 알 수 없는 경우에 사용합니다. ``tn``이 ``int`` 과 같은 non-reference 타입이라면 ``static_cast<int>(tn)``가 되어 복사가 발생할 수 있음에 유의해야합니다. 
     
 ### Parameter
 **tn** - value category 를 타입과 일치하도록 바꾸고자 하는 변수의 이름.
@@ -514,7 +514,7 @@ struct is_nth_placeholder;
 주어진 템플릿 인자 ``T`` 가 qualifier 를 모두 떼고 봤을 때, ``Placeholder<N>`` 와 같다면 ``true``, 아니라면 ``false`` 를 돌려줍니다. ``soo::detail::bind_arg`` 의 내부 구현에 사용됩니다. 
     
 ### Template Parameter
-**N** - ``Placeholder<N>`` 의 번호 N.
+**N** - ``Placeholder<N>`` 의 번호 N. <br>
 **T** - ``Placeholder<N>`` 인지 확인할 타입.
     
 ### Member value
