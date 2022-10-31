@@ -694,7 +694,7 @@ constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3,
 ```
 ``soo::bind`` 의 내부 구현에 사용됩니다. 항상 **reference** 타입을 반환하며, 이 과정에서 어떠한 복사도 일어나지 않습니다. 결과적으로 ``std::forward`` 와 똑같은 역할을 하는 함수입니다. ``t0`` 이 ``_N`` 과 같은 ``Placeholder<N>`` 인 경우 ``t1``,``t2``,..., ``t7`` 중 하나로 바인딩합니다. 이외의 경우, ``t0`` 으로 바인딩합니다.
 
-1 ) ``t0`` 의 값을 그대로 반환합니다. <br>
+1 ) ``t0`` 으로 바인딩합니다.  <br>
 2 ) ``t0`` 의 타입에 따라, ``t0``,``t1`` 중 하나로 바인딩합니다. <br>
 3 ) ``t0`` 의 타입에 따라, ``t0``,``t1``,``t2`` 중 하나로 바인딩합니다. <br>
 4 ) ``t0`` 의 타입에 따라, ``t0``,``t1``,..., ``t3`` 중 하나로 바인딩합니다. <br>
@@ -874,16 +874,27 @@ constexpr auto bind(Functor&& ftor, Args&&...args) requires !MFP<Functor>;   (1)
 template<MFP Functor, typename Class, typename...Args>
 constexpr auto bind(Functor&& mfp, Class&& pthis, Args&&...args);   (2)
 ```
-1 ) ``Functor`` 가 member function pointer 가 아닌 이외의 functoin object 이여야 함. <br>
-2 ) 
+함수 객체와 호출에 필요한 인자들을 묶어주는 함수입니다.
+
+1 ) ``Functor`` 가 member function pointer 가 아닌 이외의 functoin object 이여야 합니다. ``...args`` 는 ``ftor`` 와 함께 묶어줄 함수의 인자들입니다. ``soo::bind`` 를 통해 바인딩한 함수 객체의 호출 인자의 갯수는 ``soo::detail::bind_num<Args...>`` 와 같습니다.    <br>
+2 ) ``Functor`` 가 member function pointer 이어야 합니다. ``pthis``, ``...args`` 는 ``ftor`` 와 함께 묶어줄 함수의 인자들입니다. ``soo::bind`` 를 통해 바인딩한 함수 객체의 호출 인자의 갯수는 ``soo::detail::bind_num<Args...>`` 와 같습니다. 
 ### Template parameter
 **Functor** - any function objects. <br>
-**...Args** - ``Functor`` 에 전달해줄 인자. 
+**Class** - member function pointer 가 가리키는 함수가 소속되어 있는 class 의 타입.
+**...Args** - ``Functor`` 호출 시에 전달해줄 인자들의 타입. 
 
 ### Parameters
-
+**ftor** - member function pointer 가 아닌 이외의 function object. <br>
+**mfp** - member function pointer <br>
+**pthis** - ``mfp`` 호출 시에 넘겨줄 ``this`` 로 변환될 수 있는 class object. <br>
+**...args** - ``ftor`` 와 바인딩하고자 하는 인자들.  
 
 ### Return value
+1 ) ``ftor``, ``...args`` 의 값을 복사한 ``m_ftor``, ``...m_args`` 를 data member 로 갖고, template parameter pack 을 가진 ``operator()`` 를 member function 으로 갖는  ``soo::bind::<lambda()>`` 객체. <br>
+2 ) ``ftor``, ``pthis``, ``...args`` 의 값을 복사한 ``m_mfp``, ``m_this``, ``...m_args`` 를 data member 로 갖고, template parameter pack 을 가진 ``operator()`` 를 member function 으로 갖는 ``soo::bind::<lambda()>`` 객체.
 
+### Example
+``` c++
 
+```
 </td></tr></table> 
