@@ -874,13 +874,13 @@ constexpr auto bind(Functor&& ftor, Args&&...args) requires !MFP<Functor>;   (1)
 template<MFP Functor, typename Class, typename...Args>
 constexpr auto bind(Functor&& mfp, Class&& pthis, Args&&...args);   (2)
 ```
-함수 객체와 호출에 필요한 인자들을 묶어주는 함수입니다.
+함수 객체와 호출에 필요한 인자들을 묶어주는 함수입니다. ``soo::bind`` 함수는 단순히 `ftor` 와 ``pthis``, ``...args`` 를 복사한 ``std::bind::<lambda()>``를 반환하기만 합니다. 즉, ``pthis`` 와 ``...args`` 의 타입이 올바른지, 넘겨줄 인자가 너무 많은지 적은지는 ``std::bind::<lambda()>::operator()`` 를 호출하기 전까지 검사하지 않습니다. 잘못된 값으로 바인딩했다면, ``operator()`` 를 호출하는 시점에서 항상 에러가 발생하게 됩니다. 함수에 전달할 값의 타입은 ``soo::bind`` 에 전달했던 그대로 전달을 해줍니다. 즉, ``int&&`` 으로 전달했다면 항상 ``int&&`` 타입으로 전달합니다. 
 
 1 ) ``Functor`` 가 member function pointer 가 아닌 이외의 functoin object 이여야 합니다. ``...args`` 는 ``ftor`` 와 함께 묶어줄 함수의 인자들입니다. ``soo::bind`` 를 통해 바인딩한 함수 객체의 호출 인자의 갯수는 ``soo::detail::bind_num<Args...>`` 와 같습니다.    <br>
 2 ) ``Functor`` 가 member function pointer 이어야 합니다. ``pthis``, ``...args`` 는 ``ftor`` 와 함께 묶어줄 함수의 인자들입니다. ``soo::bind`` 를 통해 바인딩한 함수 객체의 호출 인자의 갯수는 ``soo::detail::bind_num<Args...>`` 와 같습니다. 
 ### Template parameter
 **Functor** - any function objects. <br>
-**Class** - member function pointer 가 가리키는 함수가 소속되어 있는 class 의 타입.
+**Class** - member function pointer 가 가리키는 함수가 소속되어 있는 class 의 타입. <br>
 **...Args** - ``Functor`` 호출 시에 전달해줄 인자들의 타입. 
 
 ### Parameters
@@ -895,6 +895,113 @@ constexpr auto bind(Functor&& mfp, Class&& pthis, Args&&...args);   (2)
 
 ### Example
 ``` c++
+# include"myfunctional.hpp"
+# include<string>
+using namespace soo::placeholders;
 
+int sum(int a, int b) {
+    return a + b;
+}
+
+struct Adder {
+    int operator()(int a, int b) {
+        return a + b;
+    }
+};
+
+int main()
+{
+    auto println = [](auto&& a){ std::cout << a << std::endl; };
+    
+    auto fn1 = soo::bind(
+        [](int a, int b) { return a + b; }, _1, _2  // lambda expression.
+    );
+    auto fn2 = soo::bind(sum, _1,_2);   // static function.
+    auto fn3 = soo::bind(Adder{}, _1,_2);    // object which have `operator()`.
+    auto fn4 = soo::bind(&Adder::operator(), Adder{}, _1,_2); // member function.
+    
+    println(fn1(1,2) ); // 3
+    println(fn2(3,4) ); // 7
+    println(fn3(5,6) ); // 11
+    println(fn4(7,8) ); // 15
+    
+    // fn1(1,2,3); // error: static assertion failed: too many arguments to operator()
+    // fn2(3);     // error: static assertion failed: too few arguments to operator()
+    
+    soo::function<int()> fns[4] = {
+        soo::bind(fn1,1,2),
+        soo::bind(fn2,3,4),
+        soo::bind(fn3,5,6),
+        soo::bind(fn4,7,8)
+    };
+    
+    for(auto& f : fns) {
+        println(f() ); // 3 7 11 15
+    }
+    
+    
+    auto fn5 = soo::bind(&std::string::c_str, std::string("hello") ); // std::string(const std::string&) is called.
+    println(fn5() );  // hello
+    
+    auto fn6 = soo::bind(&std::string::c_str, 10); // OK. fn6::operator()().
+                                                   // but `10` is not std::string. 
+    // fn6(); // error: `10` is not convertible to `std::string`. 
+    // fn6(std::string{"hello"} ); // error: static assertion failed: too many arguments to operator().
+                                   // sizeof...(fn6::operator()::...args) must be 0.
+    
+    auto fn7 = soo::bind(&std::string::c_str, _3); // OK.
+    // println(fn7(1,2,3) ); // error: `3` is not convertible to std::string
+    println(
+        fn7(1,2,std::string{"world!"} ) // world! 
+    );
+}
 ```
+</td></tr></table> 
+
+
+
+<table><tr><td>
+
+## soo::function
+<sub> Defined in "myfunctional.hpp"</sub>
+``` c++
+template<typename T>
+class function;
+```
+``` c++
+template<typename Ret, typename...Args>
+class function<Ret(Args...)>;
+```
+1 ) <br>
+2 )
+
+### Template parameter
+**Ret** - 함수의 반환형. <br>
+**...Args>** - 
+
+### Member functions
+
+
+
+### Non-member functoins
+
+<table background:grey><tr><td>
+
+## soo::function<Ret(Args...)>::alloc
+``` c++
+template<size_t FunctorSize>
+void alloc();
+```
+
+
+### Template parameter
+**FunctorSize** - 
+
+### Parameters
+(none)
+
+### Return value
+(none)
+</td></tr></table> 
+
 </td></tr></table> 
