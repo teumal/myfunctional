@@ -876,7 +876,7 @@ constexpr auto bind(Functor&& mfp, Class&& pthis, Args&&...args);   (2)
 ```
 함수 객체와 호출에 필요한 인자들을 묶어주는 함수입니다. ``soo::bind`` 함수는 단순히 `ftor` 와 ``pthis``, ``...args`` 를 복사한 ``std::bind::<lambda()>``를 반환하기만 합니다. 즉, ``pthis`` 와 ``...args`` 의 타입이 올바른지, 넘겨줄 인자가 너무 많은지 적은지는 ``std::bind::<lambda()>::operator()`` 를 호출하기 전까지 검사하지 않습니다. 잘못된 값으로 바인딩했다면, ``operator()`` 를 호출하는 시점에서 항상 에러가 발생하게 됩니다. 함수에 전달할 값의 타입은 ``soo::bind`` 에 전달했던 그대로 전달을 해줍니다. 즉, ``int&&`` 으로 전달했다면 항상 ``int&&`` 타입으로 전달합니다. 
 
-1 ) ``Functor`` 가 member function pointer 가 아닌 이외의 functoin object 이여야 합니다. ``...args`` 는 ``ftor`` 와 함께 묶어줄 함수의 인자들입니다. ``soo::bind`` 를 통해 바인딩한 함수 객체의 호출 인자의 갯수는 ``soo::detail::bind_num<Args...>`` 와 같습니다.    <br>
+1 ) ``Functor`` 가 member function pointer 가 아닌 이외의 functoin object 이여야 합니다. ``...args`` 는 ``ftor`` 와 함께 묶어줄 함수의 인자들입니다. ``soo::bind`` 를 통해 바인딩한 함수 객체의 호출 인자의 갯수는 ``soo::detail::bind_num<Args...>`` 와 같습니다.    <br><br>
 2 ) ``Functor`` 가 member function pointer 이어야 합니다. ``pthis``, ``...args`` 는 ``ftor`` 와 함께 묶어줄 함수의 인자들입니다. ``soo::bind`` 를 통해 바인딩한 함수 객체의 호출 인자의 갯수는 ``soo::detail::bind_num<Args...>`` 와 같습니다. 
 ### Template parameter
 **Functor** - any function objects. <br>
@@ -972,30 +972,49 @@ class function;
 template<typename Ret, typename...Args>
 class function<Ret(Args...)>;
 ```
-1 ) <br>
-2 )
+``Static function``, ``Member function``, ``Lambda expression``, ``An objects which have operator()`` 와 같이 타입이 달라도 <br>
+호출 방법이 ``Ret(Args...)`` 와 같다면, 모두 담을 수 있는 general-purpose polymorphic function object 입니다. <br>
+사용 방법은 ``std::function`` 과 같습니다. <br>
+1 ) ``T`` 가 **가변 인자를 가진 function**, **member function type**, **non-function** 타입일 경우에 컴파일 에러를 일으킵니다. <br>
+    반드시 return type 과 호출에 필요한 인자들의 타입만을 명시해주어야 합니다. <br>
+2 ) 호출 방식이 ``Ret(Args...)`` 인 함수 객체를 담는 컨테이너 class 입니다. 
 
 ### Template parameter
-**Ret** - 함수의 반환형. <br>
-**...Args>** - 
+**Ret** - return type. <br>
+**...Args>** - function argument types. 
+
+### Data members
+모두 ``private`` 입니다.
+- ``m_bufptr`` - 현재 target 이 담겨 있는 storage 의 시작주소를 가리키는 포인터입니다. <br>
+- ``m_invoke`` - ``function<Ret(Args...)>::invoke`` 함수의 주소를 가리키는 포인터입니다. <br>
+- ``m_manager`` - ``function<Ret(Args...)>::m_manager`` 함수의 주소를 가리키는 포인터입니다. <br>
+- ``m_buf_local`` - 크기가 8과 같거나 작은 target 을 담아두는 local storage 입니다. <br>
+- ``m_capacity`` - dynamic storage 를 사용 중이라면 활성화됩니다. 할당한 dynamic storage 의 용량을 저장합니다. <br>
 
 ### Member functions
+- ``alloc (private)`` - dynamic storage 를  할당합니다. 
+- ``(constructor)`` - 생성자.
+- ``(destructor)`` - 소멸자.
+- ``operator=`` - 새로운 target 을 넣어줍니다.
+- ``operator()`` - target 을 invoke 시킵니다.
+- ``swap`` - 두 ``function<Ret(Args...)>`` 의 target 을 교환합니다.
+- ``target_type`` - 현재 담고 있는 target 의 ``std::type_info`` 를 얻습니다.
+- ``target`` - 현재 담고 있는 target 을 가리키는 포인터입니다.
+- ``operator bool()`` - ``function<Ret(Args...)>`` 가 비어있는지를 확인합니다.
 
-
-
-### Non-member functoins
-
-<table background:grey><tr><td>
+<table><tr><td>
 
 ## soo::function<Ret(Args...)>::alloc
 ``` c++
 template<size_t FunctorSize>
-void alloc();
+void alloc();   
 ```
-
+dynamic storage 를 할당합니다. 할당하는 버퍼의 크기는 항상 64 의 배수이며, 할당한 크기만큼 정렬되어 있습니다. <br>
+한번도 dynamic storage 를 할당한 적이 없거나, ``m_capacity`` 가 ``FunctorSize`` 보다 작은 경우에만 할당이 이루어 집니다. <br>
+그 이외의 경우, 이미 충분한 크기의 dynamic storage 를 가지고 있다고 판단합니다. 
 
 ### Template parameter
-**FunctorSize** - 
+**FunctorSize** - 할당할 객체의 크기.
 
 ### Parameters
 (none)
@@ -1003,5 +1022,87 @@ void alloc();
 ### Return value
 (none)
 </td></tr></table> 
+<table><tr><td>
+
+## soo::function<Ret(Args...)>::function
+``` c++
+function(); (1)
+```
+``` c++
+function(std::nullptr_t); (2)
+```
+``` c++
+function(const function& other); (3)
+```
+``` c++
+function(function&& other); (4)
+```
+``` c++
+template<NotEqual<function> Functor>
+function(Functor&& ftor) requires Callable<Ret,Functor,Args...>  (5)
+```
+1,2 ) default constructor. 비어있는 function object 를 만듭니다. 이 상태에서 ``operator()`` 를 호출한다면, <br>
+      ``soo::bad_functoin_call`` exception 이 발생합니다. <br><br>
+3 ) copy constructor. 깊은 복사를 통해 target 을 복사해옵니다. <br><br>
+4 ) move constructor. ``other`` target 의 memory block 의 소유권을 넘겨받습니다. <br>
+    즉, ``other`` 의 dynamic storage 은 해당 공간을 가리키는 포인터만 복사가 이루어집니다. <br> 
+    이후, ``other`` 은 비어있는 functon objects 가 되며, dynamic storage 를 사용하기 전 상태가 됩니다. <br><br>
+5 ) 함수 객체 ``ftor`` 로 직접 target 을 넣어주는 것으로 초기화합니다. ``ftor`` 가 자기 자신일 수는 없습니다. <br>
+    ``NotEqual<function>`` 제약이 없다면, 구현 상 무한 재귀가 일어나게 됩니다.<br>
+    ``ftor`` 는 ``Args...`` 를 인자로 갖고 호출이 가능해야 하며, 호출 결과가 ``Ret`` 로 변환될 수 있어야 합니다. <br>
+    ``std::remove_reference_t<Functor> < 8`` 이라면 ``function<Ret(Args...)`` 안에 있는 local storage 를 사용하게 되지만, <br>
+    ``std::remove_reference_t<Functor> > 8`` 이라면 dynamic storage 를 사용하게 됩니다. <br>
+
+### Parameters
+**other** - 초기화하는데 사용할 ``function<Ret(Args...)>`` 객체. <br> 
+**ftor** - invoke 방법이 ``Ret(Args...)`` 인 function object.
+
+</td></tr></table> 
+<table><tr><td>
+
+## soo::function<Ret(Args...)>::~function
+``` c++
+function<Ret(Args...)>::~function();
+```
+target 이 존재한다면, target 의 소멸자를 호출해줍니다. 만약, dynamic storage 를 할당했었다면 이후 이 공간을 해제합니다.
+
+</td></tr></table> 
+
+<table><tr><td>
+
+## soo::function<Ret(Args...)>::operator=
+``` c++
+template<NotEqual<function> Functor>
+function& operator=(Functor&& ftor) requires Callable<Ret,Functor,Args...>;  (1)
+```
+``` c++
+function& operator=(const function& other);  (2)
+```
+``` c++
+function& operator=(function&& other);  (3)
+```
+``` c++
+function& operator=(std::nullptr_t);  (4)
+```
+``function<Ret(Args...)>`` 객체에 새로운 target 을 넣어줍니다. 만약 ``function<Ret(Args...)>`` 객체의 target 이 비어있는 상태가 아니라면, <br>
+먼저 이전 target 의 소멸자를 호출해줍니다. 
+
+1 ) ``ftor`` 으로 현재 target 을 변경합니다. ``NotEqual<function>`` 제약이 없다면 구현 상 무한 재귀가 일어나게 됩니다. <br>
+    ``ftor`` 은 ``Args...`` 으로 호출이 가능해야 하며, 호출 결과가 ``Ret`` 로 변환이 가능해야 합니다. <br><br>
+2 ) copy constructor. ``other`` 에 있는 내용을 깊은 복사해옵니다. <br><br>
+3 ) move constructor. ``other`` 의 memory block 의 소유권을 넘겨받습니다.  <br><br>
+4 ) <br><br>
+### Parameters
+
+### Return values
+``*this``. 
+
+</td></tr></table> 
+
+
+
+### Non-member functoins
+
+
 
 </td></tr></table> 
