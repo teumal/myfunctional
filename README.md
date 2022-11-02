@@ -1,8 +1,8 @@
 # myfunctional
 Simple function, bind in c++20 <br>
 ``std::function`` 과 ``std::bind`` 를 간단하게 구핸해본 라이브러리입니다. <br>
-자세한 설명은 [std::function, std::bind 를 만들어보자](https://blog.naver.com/zmsdkemf8703/222894357301) 강좌에서 볼 수 있습니다. <br>
-여기는 ``soo::function`` 와 ``soo::bind`` 을 구현하는데 사용한 함수들과 클래스들의 레퍼런스를 정리해두었습니다. <br>
+아래에는 ``soo::function`` 와 ``soo::bind`` 을 구현하는데 사용한 함수들과 클래스들의 레퍼런스를 정리해두었습니다. <br>
+예시에 있는 코드들은 g++9.4.0 에서 테스트되었습니다.
 
 
 <table><tr><td>
