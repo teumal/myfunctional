@@ -227,12 +227,12 @@
             using InvokeType = std::conditional_t<is_function_reference_v<Functor&&>,RawFunctor, Functor&&>;
             
             return [m_ftor=__FORWARD(ftor), ...m_args=__FORWARD(args)] 
-                   (auto&&...args) mutable -> decltype(auto) {
-                       static_assert(!(sizeof...(args)>detail::bind_num<Args...>), "too many arguments to operator()");
-                       static_assert(!(sizeof...(args)<detail::bind_num<Args...>), "too few arguments to operator()");
+                   (auto&&...params) mutable -> decltype(auto) {
+                       static_assert(!(sizeof...(params)>detail::bind_num<Args...>), "too many arguments to operator()");
+                       static_assert(!(sizeof...(params)<detail::bind_num<Args...>), "too few arguments to operator()");
                        
                        return static_cast<InvokeType>(m_ftor) 
-                              (detail::bind_arg<Args>(m_args, __FORWARD(args)...)...);
+                              (detail::bind_arg<Args>(m_args, __FORWARD(params)...)...);
                    };
         }
         
@@ -243,13 +243,13 @@
             using ThisType = this_type_t<std::remove_reference_t<Functor>>;
 
             return [m_mfp=__FORWARD(mfp), m_this=__FORWARD(pthis), ...m_args=__FORWARD(args)]
-                   (auto&&...args) mutable -> decltype(auto) {
-                      static_assert(!(sizeof...(args)>detail::bind_num<Class,Args...>), "too many arguments to operator()");
-                      static_assert(!(sizeof...(args)<detail::bind_num<Class,Args...>), "too few arguments to operator()");
+                   (auto&&...params) mutable -> decltype(auto) {
+                      static_assert(!(sizeof...(params)>detail::bind_num<Class,Args...>), "too many arguments to operator()");
+                      static_assert(!(sizeof...(params)<detail::bind_num<Class,Args...>), "too few arguments to operator()");
 
                       return (detail::bind_this<ThisType>(
-                                detail::bind_arg<Class>(m_this, __FORWARD(args)...)
-                             ).*m_mfp) (detail::bind_arg<Args>(m_args, __FORWARD(args)...)...);
+                                detail::bind_arg<Class>(m_this, __FORWARD(params)...)
+                             ).*m_mfp) (detail::bind_arg<Args>(m_args, __FORWARD(params)...)...);
                    };
         }
         
