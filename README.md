@@ -983,6 +983,9 @@ class function<Ret(Args...)>;
 **Ret** - return type. <br>
 **...Args>** - function argument types. 
 
+### Member type
+``Operation`` - 
+
 ### Data members
 모두 ``private`` 입니다.
 - ``m_bufptr`` - 현재 target 이 담겨 있는 storage 의 시작주소를 가리키는 포인터입니다. <br>
@@ -1000,7 +1003,7 @@ class function<Ret(Args...)>;
 - ``swap`` - 두 ``function<Ret(Args...)>`` 의 target 을 교환합니다.
 - ``target_type`` - 현재 담고 있는 target 의 ``std::type_info`` 를 얻습니다.
 - ``target`` - 현재 담고 있는 target 을 가리키는 포인터입니다.
-- ``operator bool()`` - ``function<Ret(Args...)>`` 가 비어있는지를 확인합니다.
+- ``operator bool()`` - ``*this`` 의 target 이 있는지를 확인합니다.
 
 <table><tr><td>
 
@@ -1187,6 +1190,7 @@ target 이 있으면 ``true``, 이외의 경우는 ``false``.
 
 ### Non-member functoins
 
-
+- ``invoke`` - 
+- ``manager`` - 
 
 </td></tr></table> 
