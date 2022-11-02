@@ -1,5 +1,9 @@
 # myfunctional
-Simple function, bind in c++20
+Simple function, bind in c++20 <br>
+``std::function`` 과 ``std::bind`` 를 간단하게 구핸해본 라이브러리입니다. <br>
+자세한 설명은 [std::function, std::bind 를 만들어보자](https://blog.naver.com/zmsdkemf8703/222894357301) 강좌에서 볼 수 있습니다. <br>
+여기는 ``soo::function`` 와 ``soo::bind`` 을 구현하는데 사용한 함수들과 클래스들의 레퍼런스를 정리해두었습니다. <br>
+
 
 <table><tr><td>
 
@@ -1049,7 +1053,8 @@ function(Functor&& ftor) requires Callable<Ret,Functor,Args...>  (5)
 3 ) copy constructor. 깊은 복사를 통해 target 을 복사해옵니다. <br><br>
 4 ) move constructor. ``other`` target 의 memory block 의 소유권을 넘겨받습니다. <br>
     즉, ``other`` 의 dynamic storage 은 해당 공간을 가리키는 포인터만 복사가 이루어집니다. <br> 
-    이후, ``other`` 은 비어있는 functon objects 가 되며, dynamic storage 를 사용하기 전 상태가 됩니다. <br><br>
+    이후, ``other`` 은 비어있는 functon objects 가 되며, dynamic storage 를 사용하기 전 상태가 됩니다. <br>
+    이 과정에서 target 의 move constructor 가 호출되지 않습니다. <br><br>
 5 ) 함수 객체 ``ftor`` 로 직접 target 을 넣어주는 것으로 초기화합니다. ``ftor`` 가 자기 자신일 수는 없습니다. <br>
     ``NotEqual<function>`` 제약이 없다면, 구현 상 무한 재귀가 일어나게 됩니다.<br>
     ``ftor`` 는 ``Args...`` 를 인자로 갖고 호출이 가능해야 하며, 호출 결과가 ``Ret`` 로 변환될 수 있어야 합니다. <br>
@@ -1060,6 +1065,110 @@ function(Functor&& ftor) requires Callable<Ret,Functor,Args...>  (5)
 **other** - 초기화하는데 사용할 ``function<Ret(Args...)>`` 객체. <br> 
 **ftor** - invoke 방법이 ``Ret(Args...)`` 인 function object.
 
+### Example
+``` c++
+# include"myfunctional.hpp"
+# include<string>
+using namespace soo::placeholders;
+
+struct Adder {
+    int a, b;
+    
+    // default constructor
+    Adder() { std::cout << __PRETTY_FUNCTION__ << std::endl; }
+    
+    // move constructor
+    Adder(Adder&& other) : a(other.a), b(other.b) { 
+        std::cout << __PRETTY_FUNCTION__ << std::endl; 
+        other.a = other.b = 0;
+    }
+    
+    // copy constructor
+    Adder(const Adder& other) : a(other.a), b(other.b) { 
+        std::cout << __PRETTY_FUNCTION__ << std::endl; 
+    }
+    
+    // other constructor
+    Adder(int a, int b) : a(a), b(b) {
+        std::cout << __PRETTY_FUNCTION__ << std::endl; 
+    }
+    
+    // destructor
+    ~Adder() { std::cout << __PRETTY_FUNCTION__ << std::endl; }
+    
+    // function call operator
+    int operator()() const {
+        return a + b;
+    }
+};
+
+template<typename F>
+void var_dump(const F& f) {
+    alignas(alignof(F)) uint64_t buf[sizeof(F)/8];
+    static_assert(sizeof(buf)==sizeof(F) );
+    
+    memcpy(buf,&f, sizeof(F) );
+    std::cout << std::hex << &f << ": \n";
+    for(int i=0; i<sizeof(F)/8; ++i) {
+        std::cout << buf[i] << ' ';
+    }
+    std::cout << "\n\n" << std::dec;
+}
+
+
+int main()
+{
+    using Delegate = soo::function<const char*()>;
+    using Delegate2 = soo::function<int()>;
+    std::cout << std::boolalpha;
+    
+    auto println = [](auto&&...args) { ((std::cout << args << ' '),...) << std::endl; };
+    Delegate fn1 = soo::bind(&std::string::c_str, std::string("hello world,") ), // function(Functor&&)
+             fn2 = fn1,     // function(const function&)
+             fn3 = nullptr; // function(std::nullptr)
+             
+                   //    address        m_bufptr     m_invoke     m_manager  m_capacity
+    var_dump(fn1); // 0x7ffcbd182800: 555555e91940 7f2dcab36500 7f2dcab36580 40
+    var_dump(fn2); // 0x7ffcbd182820: 555555e91a00 7f2dcab36500 7f2dcab36580 40
+    var_dump(fn3); // 0x7ffcbd182840: 7ffcbd182858 0            0            2c646c72
+    println(fn1(), fn2(), fn3); // hello world hello world false
+    
+    //fn3(); // terminate called afther throwing an instance of `soo::bad_function_call`
+             //   what():  bad function call
+    
+    Delegate fn4 = std::move(fn2); // function(function&&)
+    
+                   //    address        m_bufptr     m_invoke     m_manager  m_capacity
+    var_dump(fn2); // 0x7ffcbd182820: 7ffcbd182838   0            0          40 
+    var_dump(fn4); // 0x7ffcbd182860: 555555e91a00 7f2dcab36500 7f2dcab36580 40
+    println(fn4() ); // hello world,
+    
+    Adder* adder = new Adder{1,2};
+    Delegate2 fn5 = *adder; // Adder::Adder(int, int)  
+                            // Adder::Adder(const Adder&)  in function(Functor&&)
+    Delegate2 fn6 = Adder{3,4}; // Adder::Adder(int,int)
+                                // Adder::Adder(Adder&&) in function(Functor&&)
+                                // Adder::~Adder()
+    Delegate2 fn7 = soo::ref(*new Adder{5,6} ); // Adder::Adder(int,int)
+    
+                                    
+    Delegate2 fn8 = std::move(fn7); // function(function&&)
+    
+                   //    address        m_bufptr     m_invoke     m_manager  m_buf_local
+    var_dump(fn5); // 0x7ffc19492350: 7ffc19492368 7f4c0d198b60 7f4c0d198d70 200000001
+    var_dump(fn6); // 0x7ffc19492370: 7ffc19492388 7f4c0d198b70 7f4c0d198d70 400000003
+    var_dump(fn7); // 0x7ffc19492390: 7ffc194923a8 0            0            555555a0fac0
+    var_dump(fn8); // 0x7ffc194923b0: 7ffc194923c8 7f4c0d198b80 7f4c0d198b90 555555a0fac0
+    println(fn5(), fn6(), fn7, fn8() ); // 3 7 false 11
+    
+    // Adder::~Adder()
+    // Adder::~Adder()
+    delete adder; // Adder::~Adder()
+    delete &fn8.target<
+      soo::reference_wrapper<Adder>
+    >()->get(); // Adder::~Adder()
+}
+```
 </td></tr></table> 
 <table><tr><td>
 
@@ -1093,7 +1202,7 @@ function& operator=(std::nullptr_t);  (4)
 1 ) ``ftor`` 으로 현재 target 을 변경합니다. ``NotEqual<function>`` 제약이 없다면 구현 상 무한 재귀가 일어나게 됩니다. <br>
     ``ftor`` 은 ``Args...`` 으로 호출이 가능해야 하며, 호출 결과가 ``Ret`` 로 변환이 가능해야 합니다. <br><br>
 2 ) copy constructor. ``other`` 에 있는 내용을 깊은 복사해옵니다. <br><br>
-3 ) move constructor. ``other`` 의 memory block 의 소유권을 넘겨받습니다.  <br><br>
+3 ) move constructor. ``other`` 의 memory block 의 소유권을 넘겨받습니다. 이 과정에서 target 의 move constructor 가 호출되지 않습니다.  <br><br>
 4 ) ``*this`` 의 현재 target 을 비웁니다. 이 과정이 dynamic storage 를 해제하는 것을 의미하지 않습니다.  <br><br>
 ### Parameters
 **other** - 초기화하는데 사용할 ``function<Ret(Args...)>`` 객체. <br> 
@@ -1118,6 +1227,25 @@ Ret operator()(Args&&...args) const;
 ### Return value
 ``Ret``
 
+### Example
+``` c++
+# include"myfunctional.hpp"
+
+int sum(int a, int b) {
+    return a + b;
+}
+
+int main()
+{
+    soo::function<int(int,int)> fn = nullptr;
+    
+    // fn(1,2); // terminate called after throwing an instance of 'soo::bad_function_call'
+                //   what():  bad function call
+                
+    fn = sum;
+    std::cout << fn(1,2); // 3
+}
+```
 </td></tr></table> 
 
 <table><tr><td>
@@ -1134,6 +1262,67 @@ void swap(function& other);
 ### Return value
 (none)
 
+### Example
+``` c++
+# include"myfunctional.hpp"
+# include<string>
+using namespace soo::placeholders;
+
+struct Adder {
+    int a, b;
+    int operator()() const {
+        return a + b;
+    }
+};
+
+template<typename F>
+void var_dump(const F& f) {
+    alignas(alignof(F)) uint64_t buf[sizeof(F)/8];
+    static_assert(sizeof(buf)==sizeof(F) );
+    
+    memcpy(buf,&f, sizeof(F) );
+    std::cout << std::hex << &f << ": \n";
+    for(int i=0; i<sizeof(F)/8; ++i) {
+        std::cout << buf[i] << ' ';
+    }
+    std::cout << "\n\n" << std::dec;
+}
+
+
+int main()
+{
+    auto println = [](auto&&...args) { ((std::cout << args << ' '),...) << std::endl; };
+    soo::function<const char*()> fn1 = soo::bind(&std::string::c_str, std::string("hello") ),
+                                 fn2 = soo::bind(&std::string::c_str, std::string("world") );
+                   //    address         m_bufptr    m_invoke     m_manager  m_capacity
+    var_dump(fn1); // 0x7ffea1770f20: 5555567f9940 7fe2050a7520 7fe2050a75a0 40
+    var_dump(fn2); // 0x7ffea1770f40: 5555567f9a00 7fe2050a7520 7fe2050a75a0 40
+    println(fn1(), fn2() ); // hello world
+    
+    fn1.swap(fn2); 
+    
+                   //    address         m_bufptr    m_invoke     m_manager  m_capacity
+    var_dump(fn1); // 0x7ffea1770f20: 5555567f9a00 7fe2050a7520 7fe2050a75a0 40
+    var_dump(fn2); // 0x7ffea1770f40: 5555567f9940 7fe2050a7520 7fe2050a75a0 40
+    println(fn1(), fn2() ); // world hello
+    
+    
+    soo::function<int()> fn3 = Adder{1,2},
+                         fn4 = Adder{3,4};
+                         
+                   //    address         m_bufptr    m_invoke     m_manager  m_buf_local
+    var_dump(fn3); // 0x7fffcf135a20: 7fffcf135a38 7f86b70d3840 7f86b70d3850 200000001
+    var_dump(fn4); // 0x7fffcf135a40: 7fffcf135a58 7f86b70d3840 7f86b70d3850 400000003
+    println(fn3(), fn4() ); // 3 7
+    
+    fn3.swap(fn4);
+    
+                   //    address         m_bufptr    m_invoke     m_manager  m_buf_local
+    var_dump(fn3); // 0x7fffcf135a20: 7fffcf135a38 7f86b70d3840 7f86b70d3850 400000003
+    var_dump(fn4); // 0x7fffcf135a40: 7fffcf135a58 7f86b70d3840 7f86b70d3850 200000001
+    println(fn3(), fn4() ); // 7 3
+}
+```
 </td></tr></table> 
 
 <table><tr><td>
@@ -1150,6 +1339,45 @@ const std::type_info& target_type() const;
 ### Return value
 target 이 있다면 ``typeid(target)``. 만약, target 이 비어있다면 ``typeid(void)``.
 
+### Example
+``` c++
+
+# include"myfunctional.hpp"
+# include<string>
+using namespace soo::placeholders;
+
+struct Adder {
+    int a, b;
+    
+    // destructor
+    ~Adder() { std::cout << __PRETTY_FUNCTION__ << std::endl; }
+    
+    // function call operator
+    int operator()() const {
+        return a + b;
+    }
+};
+
+
+int main()
+{
+    soo::function<const char*()> fn = soo::bind(&std::string::c_str, std::string("hello world") );
+    soo::function<const char*(const std::string&)> fn2 = &std::string::c_str;
+    soo::function<int()> fn3 = Adder{1,2};
+    
+    // ZN3soo4bindIMNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEKDoFPKcvES6_JEEEDaOT_OT0_DpOT1_EUlDpOT_E_
+    std::cout << fn.target_type().name() << std::endl;
+    
+    // MNSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEEKDoFPKcvE
+    std::cout << fn2.target_type().name() << std::endl;
+    
+    std::cout << fn3.target_type().name() << std::endl; // 5Adder
+    
+    fn = nullptr;
+    std::cout << fn.target_type().name() << std::endl; // v
+    // Adder::~Adder()
+}
+```
 </td></tr></table> 
 
 <table><tr><td>
@@ -1170,6 +1398,56 @@ constexpr auto target() const;
 ### Return value
 현재 target 이 존재한다면, target 이 저장되어 있는 곳의 시작 주소를 얻습니다. 만약, target 이 비어있는 경우라면 ``nullptr`` 를 얻게 됩니다.
 
+### Example
+``` c++
+
+# include"myfunctional.hpp"
+
+struct Adder {
+    int a, b;
+    
+    // default constructor
+    Adder() { std::cout << __PRETTY_FUNCTION__ << std::endl; }
+    
+    // move constructor
+    Adder(Adder&& other) : a(other.a), b(other.b) { 
+        std::cout << __PRETTY_FUNCTION__ << std::endl; 
+        other.a = other.b = 0;
+    }
+    
+    // copy constructor
+    Adder(const Adder& other) : a(other.a), b(other.b) { 
+        std::cout << __PRETTY_FUNCTION__ << std::endl; 
+    }
+    
+    // other constructor
+    Adder(int a, int b) : a(a), b(b) {
+        std::cout << __PRETTY_FUNCTION__ << std::endl; 
+    }
+    
+    // destructor
+    ~Adder() { std::cout << __PRETTY_FUNCTION__ << std::endl; }
+    
+    // function call operator
+    int operator()() const {
+        return a + b;
+    }
+};
+
+
+int main()
+{
+    soo::function<int()> fn3 = Adder{1,2}; // Adder::Adder(int,int)
+                                           // Adder::Adder(Adder&&)
+                                           // ~Adder::Adder()
+    std::cout << fn3() << std::endl; // 3
+    
+    fn3.target<Adder>()->a = 10;
+    fn3.target<Adder>()->b = 20;
+    std::cout << fn3() << std::endl; // 30
+    // Adder::~Adder()
+}
+```
 </td></tr></table> 
 
 <table><tr><td>
@@ -1186,11 +1464,91 @@ operator bool() const noexcept;
 ### Return value
 target 이 있으면 ``true``, 이외의 경우는 ``false``.
 
+### Example
+``` c++
+# include"myfunctional.hpp"
+
+int main()
+{
+    std::cout << std::boolalpha;
+    soo::function<int()> fn = nullptr;
+    
+    std::cout << fn << std::endl; // false
+    fn = soo::bind(printf,"hello world");
+    std::cout << fn << std::endl; // true
+}
+```
+
 </td></tr></table> 
 
-### Non-member functoins
+### Non-member functions
 
-- ``invoke`` - 
-- ``manager`` - 
+- ``invoke  (private)`` - 현재 target 을 invoke 시킵니다.
+- ``manager (private)`` - 현재 target 의 타입을 알고 있으며, target 의 소멸자 호출 및 복사 생성자 호출을 담당합니다.
+
+<table><tr><td>
+
+## soo::function<Ret(Args...)>::invoke
+``` c++
+template<MFP Functor, typename Class, typename...Params>
+static Ret invoke(function& fn, Class&& pthis, Params&&...params); (1)
+```
+``` c++
+template<typename RawFunctor, typename Functor>
+static Ret invoke(function& fn, Args&&...args) requires !MFP<RawFunctor>;  (2)
+```
+``*this`` 의 target 이 있다면, ``function<Ret(Args...)>::operator()`` 에서 호출하는 함수입니다. target 을 invoke 시킵니다. <br>
+1 ) target 이 member function pointer 일 때, invoke 시키는 함수입니다. <br>
+2 ) target 이 member function pointer 가 아닌 이외의 function object 일 때, invoke 시키는 함수입니다.
+
+### Template parameters
+**Functor** - 현재 target 의 원래 타입. <br>
+**Class** - ``Functor`` 가 member function pointer 일 때, ``'this'`` 에 해당하는 타입. <br>
+**...Params** - ``...Args`` 에서 ``'this'`` 에 해당하는 부분을 뺀 나머지 인자들의 타입. <br>
+**RawFunctor** - ``std::remove_reference_t<Functor>``.
+
+### Parameters
+**fn** - ``*this`` <br>
+**pthis** - ``fn`` 이 member function pointer 일 때, ``'this'`` 객체. <br>
+**...params** - ``fn`` 이 member function pointer 일 때, ``'this'`` 를 뺀 나머지 인자들. <br>
+**...args** - ``fn`` 이 member function pointer 가 아닐 떄, 호출인자들.<br>
+
+### Return value
+``Ret``
+
+</td></tr></table>
+
+<table><tr><td>
+
+## soo::function<Ret(Args...)>::manager
+``` c++
+template<size_t FunctorSize, typename Functor>
+static void manager(const function& fn, void* out, Operation op);
+```
+``fn`` 의 target 의 타입을 알고 있는 target 관리 함수입니다. ``op`` 로 명시한 연산을 수행합니다. 
+
+### Template parameters
+**FunctorSize** - 현재 target 의 크기 <br>
+**Functor** - 현재 target 의 타입 <br>
+
+### Parameters
+**fn** - ``*this`` <br>
+**out** - ``op`` 의 연산 결과를 담을 객체의 포인터. <br>
+**op** - ``soo::function<Ret(Args...)>::Operation`` 에 명시되어있는 연산 중 하나.
+
+### Return value
+(none)
+
+</td></tr></table>
 
 </td></tr></table> 
+
+
+
+
+
+
+
+
+
+
