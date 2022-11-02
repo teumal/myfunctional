@@ -556,15 +556,9 @@
             
             // swap the stored targets of *this and other
             void swap(function& other) {
-              bool is_local_this = m_bufptr==m_buf_local;
-              bool is_local_other = other.m_bufptr==other.m_buf_local; 
-              alignas(alignof(function)) std::byte temp[sizeof(function) ];
-              memcpy(temp, this, sizeof(function) );
-              memcpy(this, &other, sizeof(function) );
-              memcpy(&other, temp, sizeof(function) );
-              
-              if(is_local_this) other.m_bufptr = other.m_buf_local; 
-              if(is_local_other) m_bufptr = m_buf_local;
+              function temp = std::move(*this);
+              *this = std::move(other);
+              other = std::move(temp);
             }
             
             
