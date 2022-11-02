@@ -1050,7 +1050,7 @@ function(Functor&& ftor) requires Callable<Ret,Functor,Args...>  (5)
 5 ) 함수 객체 ``ftor`` 로 직접 target 을 넣어주는 것으로 초기화합니다. ``ftor`` 가 자기 자신일 수는 없습니다. <br>
     ``NotEqual<function>`` 제약이 없다면, 구현 상 무한 재귀가 일어나게 됩니다.<br>
     ``ftor`` 는 ``Args...`` 를 인자로 갖고 호출이 가능해야 하며, 호출 결과가 ``Ret`` 로 변환될 수 있어야 합니다. <br>
-    ``std::remove_reference_t<Functor> < 8`` 이라면 ``function<Ret(Args...)`` 안에 있는 local storage 를 사용하게 되지만, <br>
+    ``std::remove_reference_t<Functor> <= 8`` 이라면 ``function<Ret(Args...)`` 안에 있는 local storage 를 사용하게 되지만, <br>
     ``std::remove_reference_t<Functor> > 8`` 이라면 dynamic storage 를 사용하게 됩니다. <br>
 
 ### Parameters
@@ -1091,15 +1091,99 @@ function& operator=(std::nullptr_t);  (4)
     ``ftor`` 은 ``Args...`` 으로 호출이 가능해야 하며, 호출 결과가 ``Ret`` 로 변환이 가능해야 합니다. <br><br>
 2 ) copy constructor. ``other`` 에 있는 내용을 깊은 복사해옵니다. <br><br>
 3 ) move constructor. ``other`` 의 memory block 의 소유권을 넘겨받습니다.  <br><br>
-4 ) <br><br>
+4 ) ``*this`` 의 현재 target 을 비웁니다. 이 과정이 dynamic storage 를 해제하는 것을 의미하지 않습니다.  <br><br>
 ### Parameters
+**other** - 초기화하는데 사용할 ``function<Ret(Args...)>`` 객체. <br> 
+**ftor** - invoke 방법이 ``Ret(Args...)`` 인 function object.
 
 ### Return values
 ``*this``. 
 
 </td></tr></table> 
 
+<table><tr><td>
 
+## soo::function<Ret(Args...)>::operator()
+``` c++
+Ret operator()(Args&&...args) const;
+```
+현재 target 을 ``...args`` 를 넘겨주는 것으로 invoke 시킵니다. 만약, target 이 비어있다면 ``soo::bad_function_call`` 예외가 throw 됩니다.
+
+### Parameters
+**...args** - 현재 target 을 invoke 하는 데 필요한 인자들.
+
+### Return value
+``Ret``
+
+</td></tr></table> 
+
+<table><tr><td>
+
+## soo::function<Ret(Args...)>::swap
+``` c++
+void swap(function& other);
+```
+``*this`` 와 ``other`` 의 target 을 교환합니다. 단순히, 임시 객체 ``temp`` 와 ``function(function&&)``, ``operator(function&&)`` 을 이용하여 교환합니다.
+
+### Parameter
+**other** - target 을 교환할 ``function<Ret(Args...)>`` 객체.
+
+### Return value
+(none)
+
+</td></tr></table> 
+
+<table><tr><td>
+
+## soo::function<Ret(Args...)>::target_type
+``` c++
+const std::type_info& target_type() const;
+```
+현재 ``*this`` 가 담고 있는 target 의 타입 정보를 반환합니다. 
+
+### Parameter
+(none)
+
+### Return value
+target 이 있다면 ``typeid(target)``. 만약, target 이 비어있다면 ``typeid(void)``.
+
+</td></tr></table> 
+
+<table><tr><td>
+
+## soo::function<Ret(Args...)>::target
+``` c++
+template<typename T>
+constexpr auto target() const;
+```
+``*this`` 에 저장되어 있는 target 의 시작 주소 값을 얻어옵니다.
+
+### Template parameter
+**T** - target type.
+
+### Parameter
+(none)
+
+### Return value
+현재 target 이 존재한다면, target 이 저장되어 있는 곳의 시작 주소를 얻습니다. 만약, target 이 비어있는 경우라면 ``nullptr`` 를 얻게 됩니다.
+
+</td></tr></table> 
+
+<table><tr><td>
+
+## soo::function<Ret(Args...)>::operator bool()
+``` c++
+operator bool() const noexcept;
+```
+``*this`` 의 target 이 비어있는지를 확인합니다.
+
+### Parameter
+(none)
+
+### Return value
+target 이 있으면 ``true``, 이외의 경우는 ``false``.
+
+</td></tr></table> 
 
 ### Non-member functoins
 
