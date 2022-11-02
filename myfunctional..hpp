@@ -576,7 +576,10 @@
             // get target pointer
             template<typename T>
             constexpr auto target() const {
-                return reinterpret_cast<decay_function_t<T>*>(m_bufptr);
+                if(m_invoke) {
+                  return reinterpret_cast<decay_function_t<T>*>(m_bufptr);
+                }
+                return static_cast<decay_function_t<T>*>(nullptr);
             }
             
             // checks if the target is empty
