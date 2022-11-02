@@ -310,11 +310,8 @@
          
         template<typename T>
         constexpr auto ref(T& t) { 
-            using type = std::remove_const_t<
-              std::remove_reference_t<T>
-            >;
             return reference_wrapper(
-                const_cast<type&>(t) 
+                const_cast<std::remove_const_t<T>&>(t) 
             ); 
         }
         
@@ -328,7 +325,9 @@
          
         template<typename T>
         constexpr auto cref(T& t) {
-            return reference_wrapper(t);
+            return reference_wrapper(
+              const_cast<std::add_const_t<T>&>(t)
+            );
         }
         
         template<typename T>
