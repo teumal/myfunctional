@@ -32,7 +32,7 @@
             inline void print_type(const char* endstr = "") {
                 char out[] = __FUNCSIG__;
                 out[sizeof(__FUNCSIG__)-16] = '\0';
-                std::cout << out+24 << endstr;
+                std::cout << out+29 << endstr;
             }
             
         // }
