@@ -1,4 +1,5 @@
 
+
 #ifndef MYTYPE_TRAITS_HPP // {
     
     # include<type_traits>
@@ -80,7 +81,7 @@
 
         // specialization for variadic functions such as std::printf
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......)> { using type = Class; }; 
+        struct this_type<Ret(Class::*)(Args...,...)> { using type = Class; }; 
 
         // specialization for function types that have cv-qualifiers
         template<typename Ret, typename Class, typename...Args>
@@ -90,11 +91,11 @@
         template<typename Ret, typename Class, typename...Args>
         struct this_type<Ret(Class::*)(Args...) const volatile> { using type = const volatile Class; };
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) const> { using type = const Class; }; 
+        struct this_type<Ret(Class::*)(Args...,...) const> { using type = const Class; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) volatile> { using type = volatile Class; }; 
+        struct this_type<Ret(Class::*)(Args...,...) volatile> { using type = volatile Class; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) const volatile> { using type = const volatile Class; };  
+        struct this_type<Ret(Class::*)(Args...,...) const volatile> { using type = const volatile Class; };  
 
         // specialization for function types that have ref-qualifiers
         template<typename Ret, typename Class, typename...Args>
@@ -106,13 +107,13 @@
         template<typename Ret, typename Class, typename...Args>
         struct this_type<Ret(Class::*)(Args...) const volatile &> { using type = const volatile Class&; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) &> { using type = Class&; }; 
+        struct this_type<Ret(Class::*)(Args...,...) &> { using type = Class&; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) const &> { using type = const Class&; }; 
+        struct this_type<Ret(Class::*)(Args...,...) const &> { using type = const Class&; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) volatile &> { using type = volatile Class&; }; 
+        struct this_type<Ret(Class::*)(Args...,...) volatile &> { using type = volatile Class&; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) const volatile &> { using type = const volatile Class&; }; 
+        struct this_type<Ret(Class::*)(Args...,...) const volatile &> { using type = const volatile Class&; }; 
         template<typename Ret, typename Class, typename...Args>
         struct this_type<Ret(Class::*)(Args...) &&> { using type = Class&&; }; 
         template<typename Ret, typename Class, typename...Args>
@@ -122,20 +123,20 @@
         template<typename Ret, typename Class, typename...Args>
         struct this_type<Ret(Class::*)(Args...) const volatile &&> { using type = const volatile Class&&; };
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) &&> { using type = Class&&; }; 
+        struct this_type<Ret(Class::*)(Args...,...) &&> { using type = Class&&; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) const &&> { using type = const Class&&; }; 
+        struct this_type<Ret(Class::*)(Args...,...) const &&> { using type = const Class&&; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) volatile &&> { using type = volatile Class&&; }; 
+        struct this_type<Ret(Class::*)(Args...,...) volatile &&> { using type = volatile Class&&; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) const volatile &&> { using type = const volatile Class&&; };  
+        struct this_type<Ret(Class::*)(Args...,...) const volatile &&> { using type = const volatile Class&&; };  
 
 
         // specializations for noexcept versions of all the above (C++17 and later)
         template<typename Ret, typename Class, typename...Args>
         struct this_type<Ret(Class::*)(Args...) noexcept> { using type = Class; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) noexcept> { using type = Class; }; 
+        struct this_type<Ret(Class::*)(Args...,...) noexcept> { using type = Class; }; 
         template<typename Ret, typename Class, typename...Args>
         struct this_type<Ret(Class::*)(Args...) const noexcept> { using type = const Class; };
         template<typename Ret, typename Class, typename...Args>
@@ -143,11 +144,11 @@
         template<typename Ret, typename Class, typename...Args>
         struct this_type<Ret(Class::*)(Args...) const volatile noexcept> { using type = const volatile Class; };
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) const noexcept> { using type = const Class; }; 
+        struct this_type<Ret(Class::*)(Args...,...) const noexcept> { using type = const Class; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) volatile noexcept> { using type = volatile Class; }; 
+        struct this_type<Ret(Class::*)(Args...,...) volatile noexcept> { using type = volatile Class; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) const volatile noexcept> { using type = const volatile Class; }; 
+        struct this_type<Ret(Class::*)(Args...,...) const volatile noexcept> { using type = const volatile Class; }; 
         template<typename Ret, typename Class, typename...Args>
         struct this_type<Ret(Class::*)(Args...) & noexcept> { using type = Class&; }; 
         template<typename Ret, typename Class, typename...Args>
@@ -157,13 +158,13 @@
         template<typename Ret, typename Class, typename...Args>
         struct this_type<Ret(Class::*)(Args...) const volatile & noexcept> { using type = const volatile Class&; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) & noexcept> { using type = Class&; }; 
+        struct this_type<Ret(Class::*)(Args...,...) & noexcept> { using type = Class&; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) const & noexcept> { using type = const Class&; }; 
+        struct this_type<Ret(Class::*)(Args...,...) const & noexcept> { using type = const Class&; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) volatile & noexcept> { using type = volatile Class&; }; 
+        struct this_type<Ret(Class::*)(Args...,...) volatile & noexcept> { using type = volatile Class&; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) const volatile & noexcept> { using type = const volatile Class&; }; 
+        struct this_type<Ret(Class::*)(Args...,...) const volatile & noexcept> { using type = const volatile Class&; }; 
         template<typename Ret, typename Class, typename...Args>
         struct this_type<Ret(Class::*)(Args...) && noexcept> { using type = Class&&; }; 
         template<typename Ret, typename Class, typename...Args>
@@ -173,13 +174,13 @@
         template<typename Ret, typename Class, typename...Args>
         struct this_type<Ret(Class::*)(Args...) const volatile && noexcept> { using type = const volatile Class&&; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) && noexcept> { using type = Class&&; }; 
+        struct this_type<Ret(Class::*)(Args...,...) && noexcept> { using type = Class&&; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) const && noexcept> { using type = const Class&&; }; 
+        struct this_type<Ret(Class::*)(Args...,...) const && noexcept> { using type = const Class&&; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) volatile && noexcept> { using type = volatile Class&&; }; 
+        struct this_type<Ret(Class::*)(Args...,...) volatile && noexcept> { using type = volatile Class&&; }; 
         template<typename Ret, typename Class, typename...Args>
-        struct this_type<Ret(Class::*)(Args......) const volatile && noexcept> { using type = const volatile Class&&; }; 
+        struct this_type<Ret(Class::*)(Args...,...) const volatile && noexcept> { using type = const volatile Class&&; }; 
         
         // helper type.
         template<typename T>
