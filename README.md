@@ -873,7 +873,7 @@ int main()
 <sub> Defined in "myfunctional.hpp"</sub>
 ``` c++
 template<typename Functor, typename...Args>
-constexpr auto bind(Functor&& ftor, Args&&...args) requires !MFP<Functor>;   (1)
+constexpr auto bind(Functor&& ftor, Args&&...args) requires (!MFP<Functor>);   (1)
 ```
 ``` c++
 template<MFP Functor, typename Class, typename...Args>
@@ -1496,7 +1496,7 @@ static Ret invoke(function& fn, Class&& pthis, Params&&...params); (1)
 ```
 ``` c++
 template<typename RawFunctor, typename Functor>
-static Ret invoke(function& fn, Args&&...args) requires !MFP<RawFunctor>;  (2)
+static Ret invoke(function& fn, Args&&...args) requires (!MFP<RawFunctor>);  (2)
 ```
 ``*this`` 의 target 이 있다면, ``function<Ret(Args...)>::operator()`` 에서 호출하는 함수입니다. target 을 invoke 시킵니다. <br>
 1 ) target 이 member function pointer 일 때, invoke 시키는 함수입니다. <br>
