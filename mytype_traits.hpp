@@ -26,7 +26,7 @@
            }
         // }
            
-        #elif defined(__MSC_VER) // {
+        #elif defined(_MSC_VER) // {
             
             template<typename...Tn>
             inline void print_type(const char* endstr = "") {
