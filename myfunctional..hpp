@@ -222,7 +222,7 @@
          
         // bind any closure type, but mfp.
         template<typename Functor, typename...Args>
-        constexpr auto bind(Functor&& ftor, Args&&...args) requires !MFP<Functor> {
+        constexpr auto bind(Functor&& ftor, Args&&...args) requires (!MFP<Functor>) {
             using RawFunctor = decay_function_t<std::remove_reference_t<Functor>>;
             using InvokeType = std::conditional_t<is_function_reference_v<Functor&&>,RawFunctor, Functor&&>;
             
@@ -289,7 +289,7 @@
             operator T&() const { return *m_ptr; }
             T& get() const { return *m_ptr; }
             
-            template<typename...Args> requires !MFP<T>
+            template<typename...Args> requires (!MFP<T>)
             decltype(auto) operator()(Args&&...args) const {
                 return (*m_ptr)(std::forward<Args>(args)...);
             }
@@ -381,7 +381,7 @@
         
            // invoke 'any closure types'.
            template<typename RawFunctor, typename Functor>
-           static Ret invoke(function& fn, Args&&...args) requires !MFP<RawFunctor> {
+           static Ret invoke(function& fn, Args&&...args) requires (!MFP<RawFunctor>) {
                using OriginalType = std::conditional_t<
                  is_function_reference_v<Functor>, RawFunctor, Functor
                >;
