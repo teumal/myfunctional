@@ -240,12 +240,7 @@
         // bind 'member function pointer' with 'this'.
         template<MFP Functor, typename Class, typename...Args>
         constexpr auto bind(Functor&& mfp, Class&& pthis, Args&&...args) {
-            using RequiredThis = this_type_t<std::remove_reference_t<Functor>>;
-            using ThisType = std::conditional_t<
-              std::is_abstract_v<std::remove_reference_t<RequiredThis>>,
-              std::conditional_t<std::is_rvalue_reference_v<RequiredThis>, RequiredThis&&, RequiredThis&>,
-              RequiredThis
-            >;
+            using ThisType = this_type_t<std::remove_reference_t<Functor>>;
             
             return [m_mfp=__FORWARD(mfp), m_this=__FORWARD(pthis), ...m_args=__FORWARD(args)]
                    (auto&&...params) mutable -> decltype(auto) {
