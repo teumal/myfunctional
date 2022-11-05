@@ -1,5 +1,4 @@
 
-
 #ifndef MYTYPE_TRAITS_HPP // {
     
     # include<type_traits>
@@ -13,7 +12,21 @@
          * print_type
          **************/
          
-        #if defined(__GNUC__) || defined(__clang__) // {
+        #if defined(__clang__) // {
+            
+            template<typename...Tn>
+            inline void print_type(const char* endstr = "") {
+               constexpr size_t sz = sizeof(__PRETTY_FUNCTION__);
+               char out[sz];
+               for(size_t i=0; i<sz; ++i) {
+                   out[i] = __PRETTY_FUNCTION__[i];
+               }
+               out[sz-3] = '\0';
+               std::cout << out+42 << endstr;
+            }
+        // }
+         
+        #elif defined(__GNUC__) // {
          
            template<typename...Tn>
            inline void print_type(const char* endstr = "") {
