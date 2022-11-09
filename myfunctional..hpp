@@ -373,10 +373,10 @@
            void alloc() {
                 if(m_bufptr==m_buf_local || m_capacity < FunctorSize) {
                     if(m_bufptr!=m_buf_local) delete m_bufptr;
-                    constexpr size_t StorageSize = storage_size<S1>::result;
+                    constexpr size_t StorageSize = storage_size<FunctorSize>::result;
                     m_capacity = StorageSize;       // m_capacity's lifetime begins.
                     m_bufptr   = (new aligned_storage<StorageSize,
-                                                      storageSize>)->buf; // must be a power of 2. 
+                                                      storageSize>)->buf; // must be a power of 2, and at least 64.
                 }
            }
            
