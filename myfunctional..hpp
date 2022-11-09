@@ -357,6 +357,11 @@
            enum struct Operation {
               TARGET_TYPE, DESTRUCT, CONSTRUCT  
            };
+           template<size_t S1, size_t S2 = 64>
+           struct storage_size {
+              constexpr static size_t result = 
+                (S1>S2) ? (storage_size<S1,S2*2>::result) : (S2);
+           };
            using InvokeType  = Ret(*)(function&, Args&&...);
            using ManagerType = void(*)(const function&, void*, Operation);
            using ClosureBuf  = std::byte[8];
@@ -368,9 +373,10 @@
            void alloc() {
                 if(m_bufptr==m_buf_local || m_capacity < FunctorSize) {
                     if(m_bufptr!=m_buf_local) delete m_bufptr;
-                    m_capacity = FunctorSize + 63 & -64;       // m_capacity's lifetime begins.
-                    m_bufptr   = (new aligned_storage<FunctorSize+63&-64,
-                                                      FunctorSize+63&-64>)->buf; // must be a muliple of 64
+                    constexpr size_t StorageSize = storage_size<S1>::result;
+                    m_capacity = StorageSize;       // m_capacity's lifetime begins.
+                    m_bufptr   = (new aligned_storage<StorageSize,
+                                                      storageSize>)->buf; // must be a power of 2. 
                 }
            }
            
@@ -401,14 +407,23 @@
            static void manager(const function& fn, void* out, Operation op) {
                function* fnout;
                switch(op) {
-                 case Operation::TARGET_TYPE: *reinterpret_cast<const std::type_info**>(out) = &typeid(Functor); break;
-                 case Operation::DESTRUCT:    reinterpret_cast<Functor*>(fn.m_bufptr)->~Functor(); break;
-                 case Operation::CONSTRUCT:   fnout = static_cast<function*>(out);
-                                              if constexpr (FunctorSize > 8) {
-                                                fnout->alloc<FunctorSize>();
-                                              }
-                                              new(fnout->m_bufptr) 
-                                              Functor(*reinterpret_cast<Functor*>(fn.m_bufptr) ); break;
+                 case Operation::TARGET_TYPE: {
+                    *reinterpret_cast<const std::type_info**>(out) = &typeid(Functor); 
+                    break;
+                 }
+                 case Operation::DESTRUCT: {
+                    reinterpret_cast<Functor*>(fn.m_bufptr)->~Functor(); 
+                    break;
+                 }
+                 case Operation::CONSTRUCT: {
+                    fnout = static_cast<function*>(out);
+                    if constexpr (FunctorSize > 8) {
+                       fnout->alloc<FunctorSize>();
+                    }
+                    new(fnout->m_bufptr) 
+                    Functor(*reinterpret_cast<Functor*>(fn.m_bufptr) ); 
+                    break;
+                 }
                };
            }
             
@@ -472,9 +487,9 @@
                     m_invoke = function::invoke<RawFunctor,Functor&&>; // general version of invoke
                 }
                 if constexpr (sizeof(RawFunctor)>8) {
-                    m_capacity = sizeof(RawFunctor) + 63 & -64; // m_capacity's lifetime begins.
-                    m_bufptr   = (new aligned_storage<sizeof(RawFunctor)+63&-64,
-                                                      sizeof(RawFunctor)+63&-64>)->buf;
+                    constexpr size_t StorageSize = storage_size<sizeof(RawFunctor)>::result;
+                    m_capacity = StorageSize;    // m_capacity's lifetime begins.
+                    m_bufptr   = (new aligned_storage<StorageSize, StorageSize>)->buf;
                 }
                 else {
                     m_bufptr = m_buf_local;
