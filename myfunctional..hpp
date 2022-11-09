@@ -213,6 +213,25 @@
                     static_cast<RawThis&>(thisref)
                 );
             }
+            
+            /*******************
+             * storage_size
+             * storage_size_v
+             *******************/
+            
+            template<size_t S1, size_t S2 = 64, bool Cond = false>
+            struct storage_size {
+                constexpr static size_t result = S2;
+            };
+            
+            template<size_t S1, size_t S2>
+            struct storage_size<S1,S2, true> {
+                constexpr static size_t result = storage_size<S1, S2*2, (S1 > S2*2)>::result;
+            };
+            
+            template<size_t S1, size_t S2 = 64, bool Cond = false>
+            constexpr size_t storage_size_v = storage_size<S1,S2,Cond>::result;
+            
         }
         
         
@@ -243,7 +262,7 @@
             using RequiredThis = this_type_t<std::remove_reference_t<Functor>>;
             using ThisType = std::conditional_t<
               std::is_abstract_v<std::remove_reference_t<RequiredThis> >,
-              std::is_rvalue_reference_v<RequiredThis>, RequiredThis&&, RequiredThis&>,
+              std::conditional_t<std::is_rvalue_reference_v<RequiredThis>, RequiredThis&&, RequiredThis&>,
               RequiredThis
             >;
 
@@ -357,11 +376,6 @@
            enum struct Operation {
               TARGET_TYPE, DESTRUCT, CONSTRUCT  
            };
-           template<size_t S1, size_t S2 = 64>
-           struct storage_size {
-              constexpr static size_t result = 
-                (S1>S2) ? (storage_size<S1,S2*2>::result) : (S2);
-           };
            using InvokeType  = Ret(*)(function&, Args&&...);
            using ManagerType = void(*)(const function&, void*, Operation);
            using ClosureBuf  = std::byte[8];
@@ -373,10 +387,10 @@
            void alloc() {
                 if(m_bufptr==m_buf_local || m_capacity < FunctorSize) {
                     if(m_bufptr!=m_buf_local) delete m_bufptr;
-                    constexpr size_t StorageSize = storage_size<FunctorSize>::result;
+                    constexpr size_t StorageSize = detail::storage_size<FunctorSize>::result;
                     m_capacity = StorageSize;       // m_capacity's lifetime begins.
                     m_bufptr   = (new aligned_storage<StorageSize,
-                                                      storageSize>)->buf; // must be a power of 2, and at least 64.
+                                                      StorageSize>)->buf; // must be a power of 2, and at least 64.
                 }
            }
            
@@ -487,7 +501,7 @@
                     m_invoke = function::invoke<RawFunctor,Functor&&>; // general version of invoke
                 }
                 if constexpr (sizeof(RawFunctor)>8) {
-                    constexpr size_t StorageSize = storage_size<sizeof(RawFunctor)>::result;
+                    constexpr size_t StorageSize = detail::storage_size<sizeof(RawFunctor)>::result;
                     m_capacity = StorageSize;    // m_capacity's lifetime begins.
                     m_bufptr   = (new aligned_storage<StorageSize, StorageSize>)->buf;
                 }
@@ -517,7 +531,7 @@
                     m_invoke = function::invoke<RawFunctor,Functor>; // general version of invoke
                 }
                 if constexpr (sizeof(RawFunctor)>8) {
-                    alloc<sizeof(RawFunctor)>();
+                    alloc<sizeof(RawFunctor), 64>();
                 }
                 m_manager = function::manager<sizeof(RawFunctor), RawFunctor>;
                 new(m_bufptr) RawFunctor(std::forward<Functor>(ftor) );
