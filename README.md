@@ -867,6 +867,38 @@ int main()
 </td></tr></table> 
 
 
+
+<table><tr><td>
+
+## soo::detail::storage_size_impl
+<sub> Defined in "myfunctional.hpp"</sub>
+``` c++
+template<size_t S1, size_t S2, bool Cond>
+struct storage_size_impl;
+```
+``S1`` 보다 크거나 같은 2의 제곱수 ``result`` 를 정의하며, ``constexpr static size_t soo::function<Ret(Args...)>::storage_size`` variable template 을 초기화하는데 사용됩니다. 단순히 정적 변수 하나를 초기화하는데 사용되므로, helper variable 은 없습니다.
+
+### Template parameters
+``S1`` - 2의 제곱으로 만들어줄 크기. <br>
+``S2`` - ``result`` 의 최솟값. 항상 2의 제곱이어야 합니다. <br>
+``Cond`` - ``S1 > S2`` 인지 여부입니다. ``S1`` 가 ``S2`` 보다 크지 않다는 것은, ``S2`` 가 ``S1`` 와 같거나 작은 2의 제곱수라는 의미입니다.
+
+### Member variable
+``result`` - ``S1`` 보다 크거나 같은 2의 제곱 수 ``S2``
+
+### Example
+``` c++
+# include"myfunctional.hpp"
+
+int main()
+{
+  std::cout << soo::detail::storage_size_impl<24,64, (24>64)>::result; // 64
+  std::cout << soo::detail::storage_size_impl<48,1024,(48>1024)>::result; // 1024
+}
+```
+
+</td></tr></table> 
+
 <table><tr><td>
 
 ## soo::bind
