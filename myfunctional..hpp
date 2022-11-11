@@ -530,7 +530,7 @@
                     m_invoke = function::invoke<RawFunctor,Functor>; // general version of invoke
                 }
                 if constexpr (sizeof(RawFunctor)>8) {
-                    alloc<sizeof(RawFunctor), 64>();
+                    alloc<sizeof(RawFunctor)>();
                 }
                 m_manager = function::manager<sizeof(RawFunctor), RawFunctor>;
                 new(m_bufptr) RawFunctor(std::forward<Functor>(ftor) );
