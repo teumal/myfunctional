@@ -1250,7 +1250,7 @@ function& operator=(std::nullptr_t);  (4)
 
 ## soo::function<Ret(Args...)>::operator()
 ``` c++
-Ret operator()(Args&&...args) const;
+Ret operator()(Args...args) const;
 ```
 현재 target 을 ``...args`` 를 넘겨주는 것으로 invoke 시킵니다. 만약, target 이 비어있다면 ``soo::bad_function_call`` 예외가 throw 됩니다.
 
