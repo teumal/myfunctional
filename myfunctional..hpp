@@ -578,7 +578,7 @@
             
             
             // invoke the current closure.
-            Ret operator()(Args&&...args) const {
+            Ret operator()(Args...args) const {
                 if(m_invoke) {
                     return m_invoke(*const_cast<function*>(this), std::forward<Args>(args)...);
                 }
