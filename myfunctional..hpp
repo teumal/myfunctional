@@ -418,25 +418,23 @@
            // closure manager.
            template<size_t FunctorSize, typename Functor>
            static void manager(const function& fn, void* out, Operation op) {
-               function* fnout;
                switch(op) {
-                 case Operation::TARGET_TYPE: {
-                    *reinterpret_cast<const std::type_info**>(out) = &typeid(Functor); 
-                    break;
-                 }
-                 case Operation::DESTRUCT: {
-                    reinterpret_cast<Functor*>(fn.m_bufptr)->~Functor(); 
-                    break;
-                 }
-                 case Operation::CONSTRUCT: {
-                    fnout = static_cast<function*>(out);
-                    if constexpr (FunctorSize > 8) {
-                       fnout->alloc<FunctorSize>();
-                    }
-                    new(fnout->m_bufptr) 
-                    Functor(*reinterpret_cast<Functor*>(fn.m_bufptr) ); 
-                    break;
-                 }
+                  case Operation::TARGET_TYPE: {
+                     *reinterpret_cast<const std::type_info**>(out) = &typeid(Functor); 
+                     break;
+                  }
+                  case Operation::DESTRUCT: {
+                     reinterpret_cast<Functor*>(fn.m_bufptr)->~Functor(); 
+                     break;
+                  }
+                  case Operation::CONSTRUCT: {
+                     function& fnout = *static_cast<function*>(out);
+                     if constexpr (FunctorSize > 8) {
+                        fnout.alloc<FunctorSize>();
+                     }
+                     new(fnout.m_bufptr) Functor(*reinterpret_cast<Functor*>(fn.m_bufptr) ); 
+                     break;
+                  }
                };
            }
             
@@ -493,7 +491,7 @@
                 using RawFunctor = decay_function_t< // int(&)() => int() => int(*)()
                   std::remove_reference_t<Functor>
                 >; 
-                if constexpr (std::is_member_function_pointer_v<RawFunctor>) {
+                if constexpr (MFP<RawFunctor>) {
                     m_invoke = function::invoke<RawFunctor,Args...>; // invoke for member function pointer
                 }
                 else {
