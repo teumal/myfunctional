@@ -416,7 +416,7 @@
            
            
            // closure manager.
-           template<size_t FunctorSize, typename Functor>
+           template<size_t FunctorSize, typename RawFunctor>
            static void manager(const function& fn, void* out, Operation op) {
                switch(op) {
                   case Operation::TARGET_TYPE: {
@@ -432,7 +432,7 @@
                      if constexpr (FunctorSize > 8) {
                         fnout.alloc<FunctorSize>();
                      }
-                     new(fnout.m_bufptr) Functor(*reinterpret_cast<Functor*>(fn.m_bufptr) ); 
+                     new(fnout.m_bufptr) RawFunctor(*reinterpret_cast<RawFunctor*>(fn.m_bufptr) ); 
                      break;
                   }
                };
