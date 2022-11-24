@@ -420,11 +420,11 @@
            static void manager(const function& fn, void* out, Operation op) {
                switch(op) {
                   case Operation::TARGET_TYPE: {
-                     *reinterpret_cast<const std::type_info**>(out) = &typeid(Functor); 
+                     *reinterpret_cast<const std::type_info**>(out) = &typeid(RawFunctor); 
                      break;
                   }
                   case Operation::DESTRUCT: {
-                     reinterpret_cast<Functor*>(fn.m_bufptr)->~Functor(); 
+                     reinterpret_cast<RawFunctor*>(fn.m_bufptr)->~RawFunctor(); 
                      break;
                   }
                   case Operation::CONSTRUCT: {
