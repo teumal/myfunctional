@@ -394,11 +394,11 @@
            }
            
            // invoke 'member function' with 'this'.
-           template<MFP Functor, typename Class, typename...Params>
+           template<MFP RawFunctor, typename Class, typename...Params>
            static Ret invoke(function& fn, Class&& pthis, Params&&...params) {
-               using ThisType = this_type_t<std::remove_reference_t<Functor>>;
+               using ThisType = this_type_t<RawFunctor>;
                
-               auto& mfp = *reinterpret_cast<Functor*>(fn.m_bufptr);
+               auto& mfp = *reinterpret_cast<RawFunctor*>(fn.m_bufptr);
                return (detail::bind_this<ThisType>(pthis).*mfp) (std::forward<Params>(params)...);
            }
             
@@ -409,7 +409,7 @@
                using OriginalType = std::conditional_t<
                  is_function_reference_v<Functor>, RawFunctor, Functor
                >;
-               return static_cast<OriginalType>(
+               return std::forward<OriginalType>(
                           *reinterpret_cast<RawFunctor*>(fn.m_bufptr)
                       )  (std::forward<Args>(args)...);
            }
@@ -492,10 +492,10 @@
                   std::remove_reference_t<Functor>
                 >; 
                 if constexpr (MFP<RawFunctor>) {
-                    m_invoke = function::invoke<RawFunctor,Args...>; // invoke for member function pointer
+                    m_invoke = invoke<RawFunctor,Args...>; // invoke for member function pointer
                 }
                 else {
-                    m_invoke = function::invoke<RawFunctor,Functor&&>; // general version of invoke
+                    m_invoke = invoke<RawFunctor,Functor&&>; // general version of invoke
                 }
                 if constexpr (sizeof(RawFunctor)>8) {
                     constexpr size_t StorageSize = storage_size<sizeof(RawFunctor)>;
@@ -505,7 +505,7 @@
                 else {
                     m_bufptr = m_buf_local;
                 }
-                m_manager = function::manager<sizeof(RawFunctor), RawFunctor>;
+                m_manager = manager<sizeof(RawFunctor), RawFunctor>;
                 new(m_bufptr) RawFunctor(std::forward<Functor>(ftor) );
             }
             
@@ -522,15 +522,15 @@
                 }
                 
                 if constexpr (std::is_member_function_pointer_v<RawFunctor>) {
-                    m_invoke = function::invoke<RawFunctor,Args...>; // invoke for member function pointer
+                    m_invoke = invoke<RawFunctor,Args...>; // invoke for member function pointer
                 }
                 else {
-                    m_invoke = function::invoke<RawFunctor,Functor>; // general version of invoke
+                    m_invoke = invoke<RawFunctor,Functor>; // general version of invoke
                 }
                 if constexpr (sizeof(RawFunctor)>8) {
                     alloc<sizeof(RawFunctor)>();
                 }
-                m_manager = function::manager<sizeof(RawFunctor), RawFunctor>;
+                m_manager = manager<sizeof(RawFunctor), RawFunctor>;
                 new(m_bufptr) RawFunctor(std::forward<Functor>(ftor) );
                 return *this;
             }
