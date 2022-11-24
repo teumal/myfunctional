@@ -1523,7 +1523,7 @@ int main()
 
 ## soo::function<Ret(Args...)>::invoke
 ``` c++
-template<MFP Functor, typename Class, typename...Params>
+template<MFP RawFunctor, typename Class, typename...Params>
 static Ret invoke(function& fn, Class&& pthis, Params&&...params); (1)
 ```
 ``` c++
@@ -1538,7 +1538,7 @@ static Ret invoke(function& fn, Args&&...args) requires (!MFP<RawFunctor>);  (2)
 **Functor** - 현재 target 의 원래 타입. <br>
 **Class** - ``Functor`` 가 member function pointer 일 때, ``'this'`` 에 해당하는 타입. <br>
 **...Params** - ``...Args`` 에서 ``'this'`` 에 해당하는 부분을 뺀 나머지 인자들의 타입. <br>
-**RawFunctor** - ``std::remove_reference_t<Functor>``.
+**RawFunctor** - ``soo::decay_function_t< std::remove_reference_t<Functor>>``. 
 
 ### Parameters
 **fn** - ``*this`` <br>
@@ -1555,14 +1555,14 @@ static Ret invoke(function& fn, Args&&...args) requires (!MFP<RawFunctor>);  (2)
 
 ## soo::function<Ret(Args...)>::manager
 ``` c++
-template<size_t FunctorSize, typename Functor>
+template<size_t FunctorSize, typename RawFunctor>
 static void manager(const function& fn, void* out, Operation op);
 ```
 ``fn`` 의 target 의 타입을 알고 있는 target 관리 함수입니다. ``op`` 로 명시한 연산을 수행합니다. 
 
 ### Template parameters
 **FunctorSize** - 현재 target 의 크기 <br>
-**Functor** - 현재 target 의 타입 <br>
+**RawFunctor** - 현재 target 의 타입 <br>
 
 ### Parameters
 **fn** - ``*this`` <br>
