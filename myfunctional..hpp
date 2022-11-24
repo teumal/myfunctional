@@ -521,11 +521,11 @@
                     m_manager(*this, nullptr, Operation::DESTRUCT); // call ~ClosureType()
                 }
                 
-                if constexpr (std::is_member_function_pointer_v<RawFunctor>) {
+                if constexpr (MFP<RawFunctor>) {
                     m_invoke = invoke<RawFunctor,Args...>; // invoke for member function pointer
                 }
                 else {
-                    m_invoke = invoke<RawFunctor,Functor>; // general version of invoke
+                    m_invoke = invoke<RawFunctor,Functor&&>; // general version of invoke
                 }
                 if constexpr (sizeof(RawFunctor)>8) {
                     alloc<sizeof(RawFunctor)>();
