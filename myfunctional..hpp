@@ -399,7 +399,9 @@
                using ThisType = this_type_t<RawFunctor>;
                
                auto& mfp = *reinterpret_cast<RawFunctor*>(fn.m_bufptr);
-               return (detail::bind_this<ThisType>(pthis).*mfp) (std::forward<Params>(params)...);
+               return (detail::bind_this<ThisType>(
+                          std::forward<Class>(pthis)
+                    ).*mfp) (std::forward<Params>(params)...);
            }
             
         
