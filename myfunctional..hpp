@@ -609,9 +609,9 @@
             template<typename T>
             constexpr auto target() const {
                 if(m_invoke) {
-                  return reinterpret_cast<decay_function_t<T>*>(m_bufptr);
+                  return reinterpret_cast<T*>(m_bufptr);
                 }
-                return static_cast<decay_function_t<T>*>(nullptr);
+                return static_cast<T*>(nullptr);
             }
             
             // checks if the target is empty
