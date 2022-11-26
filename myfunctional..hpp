@@ -422,7 +422,7 @@
            static void manager(const function& fn, void* out, Operation op) {
                switch(op) {
                   case Operation::TARGET_TYPE: {
-                     *reinterpret_cast<const std::type_info**>(out) = &typeid(RawFunctor); 
+                     *static_cast<const std::type_info**>(out) = &typeid(RawFunctor); 
                      break;
                   }
                   case Operation::DESTRUCT: {
