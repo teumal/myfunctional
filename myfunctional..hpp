@@ -331,7 +331,7 @@
         template<typename T>
         constexpr auto ref(T& t) { 
             return reference_wrapper(
-                const_cast<std::remove_const_t<T>&>(t) 
+                const_cast<T&>(t) 
             ); 
         }
         
