@@ -330,9 +330,7 @@
          
         template<typename T>
         constexpr auto ref(T& t) { 
-            return reference_wrapper(
-                const_cast<T&>(t) 
-            ); 
+            return reference_wrapper(t); 
         }
         
         template<typename T>
