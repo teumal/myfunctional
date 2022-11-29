@@ -105,8 +105,8 @@
             constexpr decltype(auto) bind_member(auto&& t0) {
                 using RawArgs = std::remove_reference_t<Args>;
                 return std::forward<Args>(
-                    *reinterpret_cast<RawArgs*>(t0)
-                );
+                         *reinterpret_cast<RawArgs*>(t0)
+                       );
             }
             
             /******************
@@ -121,6 +121,7 @@
             template<typename Args>
             constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1) {
                 using t0_t = decltype(t0);
+                
                 if constexpr (is_nth_placeholder_v<1,t0_t>) return __FORWARD(t1);
                 else return bind_member<Args>(t0);
             }
@@ -128,6 +129,7 @@
             template<typename Args>
             constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2) {
                 using t0_t = decltype(t0);
+                
                 if constexpr (is_nth_placeholder_v<1,t0_t>)      return __FORWARD(t1);
                 else if constexpr (is_nth_placeholder_v<2,t0_t>) return __FORWARD(t2);
                 else return bind_member<Args>(t0);
@@ -136,6 +138,7 @@
             template<typename Args>
             constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3) {
                 using t0_t = decltype(t0);
+                
                 if constexpr (is_nth_placeholder_v<1,t0_t>)      return __FORWARD(t1);
                 else if constexpr (is_nth_placeholder_v<2,t0_t>) return __FORWARD(t2);
                 else if constexpr (is_nth_placeholder_v<3,t0_t>) return __FORWARD(t3);
@@ -145,6 +148,7 @@
             template<typename Args>
             constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3, auto&& t4) {
                 using t0_t = decltype(t0);
+                
                 if constexpr (is_nth_placeholder_v<1,t0_t>)      return __FORWARD(t1);
                 else if constexpr (is_nth_placeholder_v<2,t0_t>) return __FORWARD(t2);
                 else if constexpr (is_nth_placeholder_v<3,t0_t>) return __FORWARD(t3);
@@ -156,6 +160,7 @@
             constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3, 
                                               auto&& t4, auto&& t5) {
                 using t0_t = decltype(t0);
+                
                 if constexpr (is_nth_placeholder_v<1,t0_t>)      return __FORWARD(t1);
                 else if constexpr (is_nth_placeholder_v<2,t0_t>) return __FORWARD(t2);
                 else if constexpr (is_nth_placeholder_v<3,t0_t>) return __FORWARD(t3);
@@ -168,6 +173,7 @@
             constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3, 
                                               auto&& t4, auto&& t5, auto&& t6) {
                 using t0_t = decltype(t0);
+                
                 if constexpr (is_nth_placeholder_v<1,t0_t>)      return __FORWARD(t1);
                 else if constexpr (is_nth_placeholder_v<2,t0_t>) return __FORWARD(t2);
                 else if constexpr (is_nth_placeholder_v<3,t0_t>) return __FORWARD(t3);
@@ -181,6 +187,7 @@
             constexpr decltype(auto) bind_arg(auto&& t0, auto&& t1, auto&& t2, auto&& t3, 
                                               auto&& t4, auto&& t5, auto&& t6, auto&& t7) {
                 using t0_t = decltype(t0);
+                
                 if constexpr (is_nth_placeholder_v<1,t0_t>)      return __FORWARD(t1);
                 else if constexpr (is_nth_placeholder_v<2,t0_t>) return __FORWARD(t2);
                 else if constexpr (is_nth_placeholder_v<3,t0_t>) return __FORWARD(t3);
@@ -252,13 +259,9 @@
         // bind 'member function pointer' with 'this'.
         template<MFP Functor, typename Class, typename...Args>
         constexpr auto bind(Functor&& mfp, Class&& pthis, Args&&...args) {
-            using RequiredThis = this_type_t<std::remove_reference_t<Functor>>;
-            using ThisType = std::conditional_t<
-              std::is_abstract_v<std::remove_reference_t<RequiredThis> >,
-              std::conditional_t<std::is_rvalue_reference_v<RequiredThis>, RequiredThis&&, RequiredThis&>,
-              RequiredThis
+            using ThisType = this_type_t<
+                std::remove_reference_t<Functor>
             >;
-
             return [m_mfp=__FORWARD(mfp), m_this=__FORWARD(pthis), ...m_args=__FORWARD(args)]
                    (auto&&...params) mutable -> decltype(auto) {
                       static_assert(!(sizeof...(params)>detail::bind_num<Class,Args...>), "too many arguments to operator()");
