@@ -101,7 +101,7 @@
             }
             
             template<typename Args>
-            requires is_function_reference_v<Args&&> || is_array_reference_v<Args&&>
+            requires (is_function_reference_v<Args&&> || is_array_reference_v<Args&&>)
             constexpr decltype(auto) bind_member(auto&& t0) {
                 using RawArgs = std::remove_reference_t<Args>;
                 return std::forward<Args>(
