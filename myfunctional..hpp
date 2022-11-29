@@ -238,15 +238,12 @@
         // bind any closure type, but mfp.
         template<typename Functor, typename...Args>
         constexpr auto bind(Functor&& ftor, Args&&...args) requires (!MFP<Functor>) {
-            using RawFunctor = decay_function_t<std::remove_reference_t<Functor>>;
-            using InvokeType = std::conditional_t<is_function_reference_v<Functor&&>,RawFunctor, Functor&&>;
-            
             return [m_ftor=__FORWARD(ftor), ...m_args=__FORWARD(args)] 
                    (auto&&...params) mutable -> decltype(auto) {
                        static_assert(!(sizeof...(params)>detail::bind_num<Args...>), "too many arguments to operator()");
                        static_assert(!(sizeof...(params)<detail::bind_num<Args...>), "too few arguments to operator()");
                        
-                       return static_cast<InvokeType>(m_ftor) 
+                       return detail::bind_member<Functor>(m_ftor) 
                               (detail::bind_arg<Args>(m_args, __FORWARD(params)...)...);
                    };
         }
